@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dutcharcheo — Nederlandse geschiedenis, tastbaar gemaakt</title>
+<meta name="description" content="Authentieke replica's, boeken en archeologische vondsten uit vier eeuwen Nederlandse geschiedenis. Zorgvuldig samengesteld, met verhalen die het verleden tot leven brengen.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Ga naar inhoud</a>
+
+<!-- Icon sprite (decorative line icons, reused via <use>) -->
+<svg aria-hidden="true" style="display:none">
+  <defs>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.6-4 5-6 8-6s6.4 2 8 6"/></symbol>
+    <symbol id="icon-bag" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="icon-hammer" viewBox="0 0 24 24"><path d="M14.5 5.5 18 9l-2 2-3.5-3.5"/><path d="M12.5 7.5 4 16l2 2 8.5-8.5"/><path d="M15.5 4.5l4 4"/></symbol>
+    <symbol id="icon-truck" viewBox="0 0 24 24"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></symbol>
+    <symbol id="icon-scroll" viewBox="0 0 24 24"><path d="M6 4h12v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4Z"/><path d="M6 7h12M6 11h8"/></symbol>
+    <symbol id="icon-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></symbol>
+    <symbol id="icon-helmet" viewBox="0 0 24 24"><path d="M4 15a8 8 0 0 1 16 0v2H4v-2Z"/><path d="M12 4v3M4 17h16"/></symbol>
+    <symbol id="icon-spade" viewBox="0 0 24 24"><path d="M12 3v11"/><path d="M7 9l5-6 5 6"/><path d="M7 20l5-6 5 6"/></symbol>
+    <symbol id="icon-medal" viewBox="0 0 24 24"><circle cx="12" cy="15" r="5"/><path d="M9 6l3 5 3-5M9 6H6l3.5 6M15 6h3l-3.5 6"/></symbol>
+    <symbol id="icon-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 6l9 7 9-7"/></symbol>
+  </defs>
+</svg>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a href="#main" class="brand">Dutcharcheo</a>
+
+    <nav class="main-nav" id="mainNav" aria-label="Hoofdmenu">
+      <a href="#collecties">Collecties</a>
+      <a href="#producten">Winkel</a>
+      <a href="#verhalen">Verhalen</a>
+      <a href="#over-ons">Over ons</a>
+    </nav>
+
+    <div class="header-actions">
+      <button class="icon-btn" type="button" aria-label="Zoeken"><svg aria-hidden="true" width="20" height="20"><use href="#icon-search"/></svg></button>
+      <button class="icon-btn" type="button" aria-label="Mijn account"><svg aria-hidden="true" width="20" height="20"><use href="#icon-user"/></svg></button>
+      <button class="icon-btn cart-btn" type="button" aria-label="Winkelwagen, 0 items"><svg aria-hidden="true" width="20" height="20"><use href="#icon-bag"/></svg><span class="cart-count" aria-live="polite">0</span></button>
+      <button class="icon-btn nav-toggle" type="button" aria-label="Menu openen" aria-expanded="false" aria-controls="mainNav">
+        <svg aria-hidden="true" width="22" height="22"><use href="#icon-menu" class="nav-toggle-icon"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-texture" aria-hidden="true"></div>
+    <div class="wrap hero-inner reveal">
+      <p class="eyebrow">Nederlandse geschiedenis — zorgvuldig bewaard</p>
+      <h1>Geschiedenis die je<br>kunt vasthouden.</h1>
+      <p class="hero-sub">Authentieke replica's, boeken en archeologische vondsten uit vier eeuwen Nederlandse geschiedenis — samengesteld met de zorg van een museum, bezorgd aan je deur.</p>
+      <div class="hero-cta">
+        <a class="btn btn-gold" href="#producten">Bekijk de collectie</a>
+        <a class="btn btn-ghost" href="#verhalen">Lees onze verhalen <svg aria-hidden="true" width="16" height="16"><use href="#icon-arrow"/></svg></a>
+      </div>
+    </div>
+    <div class="hero-frame" aria-hidden="true"></div>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <section class="trust-strip">
+    <div class="wrap trust-grid">
+      <div class="trust-item reveal">
+        <svg aria-hidden="true" width="26" height="26"><use href="#icon-shield"/></svg>
+        <div>
+          <h3>Verantwoord samengesteld</h3>
+          <p>Elk stuk gecontroleerd op historische authenticiteit</p>
+        </div>
+      </div>
+      <div class="trust-item reveal">
+        <svg aria-hidden="true" width="26" height="26"><use href="#icon-hammer"/></svg>
+        <div>
+          <h3>Handgemaakte replica's</h3>
+          <p>Vervaardigd door Nederlandse ambachtslieden</p>
+        </div>
+      </div>
+      <div class="trust-item reveal">
+        <svg aria-hidden="true" width="26" height="26"><use href="#icon-truck"/></svg>
+        <div>
+          <h3>Verzonden vanuit Nederland</h3>
+          <p>Zorgvuldig verpakt, binnen 2–4 werkdagen</p>
+        </div>
+      </div>
+      <div class="trust-item reveal">
+        <svg aria-hidden="true" width="26" height="26"><use href="#icon-scroll"/></svg>
+        <div>
+          <h3>Expertise van archeologen</h3>
+          <p>Elke collectie samengesteld met vakkennis</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section class="section" id="collecties">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Collecties</p>
+        <h2>Vier eeuwen geschiedenis, geordend.</h2>
+      </div>
+      <div class="category-grid">
+        <a class="category-card reveal" href="#producten">
+          <svg aria-hidden="true" width="34" height="34"><use href="#icon-coin"/></svg>
+          <h3>Gouden Eeuw &amp; VOC</h3>
+          <p>Munten, scheepskaarten en handelsgeschiedenis</p>
+          <span class="card-link">Bekijk collectie <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></span>
+        </a>
+        <a class="category-card reveal" href="#producten">
+          <svg aria-hidden="true" width="34" height="34"><use href="#icon-helmet"/></svg>
+          <h3>Middeleeuws Nederland</h3>
+          <p>Ridders, kastelen en ambachtelijk erfgoed</p>
+          <span class="card-link">Bekijk collectie <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></span>
+        </a>
+        <a class="category-card reveal" href="#producten">
+          <svg aria-hidden="true" width="34" height="34"><use href="#icon-spade"/></svg>
+          <h3>Archeologische Vondsten</h3>
+          <p>Zorgvuldige replica's uit Nederlandse opgravingen</p>
+          <span class="card-link">Bekijk collectie <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></span>
+        </a>
+        <a class="category-card reveal" href="#producten">
+          <svg aria-hidden="true" width="34" height="34"><use href="#icon-medal"/></svg>
+          <h3>Tweede Wereldoorlog</h3>
+          <p>Herdenking, herinnering en verhalen van vrijheid</p>
+          <span class="card-link">Bekijk collectie <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED PRODUCTS -->
+  <section class="section section-alt" id="producten">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Uitgelicht</p>
+        <h2>Zorgvuldig gekozen stukken</h2>
+      </div>
+      <div class="product-grid">
+
+        <article class="product-card reveal">
+          <div class="product-media"><svg aria-hidden="true" width="40" height="40"><use href="#icon-coin"/></svg></div>
+          <p class="product-period">Gouden Eeuw · 1735</p>
+          <h3>VOC Duit — Replica koperen munt</h3>
+          <div class="product-foot"><span class="price">&euro;24,50</span><button class="btn-add" type="button">In winkelwagen</button></div>
+        </article>
+
+        <article class="product-card reveal">
+          <div class="product-media"><svg aria-hidden="true" width="40" height="40"><use href="#icon-scroll"/></svg></div>
+          <p class="product-period">Gouden Eeuw · 17e eeuw</p>
+          <h3>Delfts Blauw Kaartenset</h3>
+          <div class="product-foot"><span class="price">&euro;38,00</span><button class="btn-add" type="button">In winkelwagen</button></div>
+        </article>
+
+        <article class="product-card reveal">
+          <div class="product-media"><svg aria-hidden="true" width="40" height="40"><use href="#icon-helmet"/></svg></div>
+          <p class="product-period">Middeleeuwen · ca. 1300</p>
+          <h3>Middeleeuwse Zegelring</h3>
+          <div class="product-foot"><span class="price">&euro;56,00</span><button class="btn-add" type="button">In winkelwagen</button></div>
+        </article>
+
+        <article class="product-card reveal">
+          <div class="product-media"><svg aria-hidden="true" width="40" height="40"><use href="#icon-scroll"/></svg></div>
+          <p class="product-period">Non-fictie · 2023</p>
+          <h3>'Het Verzonken Verleden' — boek</h3>
+          <div class="product-foot"><span class="price">&euro;29,95</span><button class="btn-add" type="button">In winkelwagen</button></div>
+        </article>
+
+        <article class="product-card reveal">
+          <div class="product-media"><svg aria-hidden="true" width="40" height="40"><use href="#icon-spade"/></svg></div>
+          <p class="product-period">Archeologie · Limburgse vondst</p>
+          <h3>Romeinse Fibula — replica</h3>
+          <div class="product-foot"><span class="price">&euro;42,00</span><button class="btn-add" type="button">In winkelwagen</button></div>
+        </article>
+
+        <article class="product-card reveal">
+          <div class="product-media"><svg aria-hidden="true" width="40" height="40"><use href="#icon-medal"/></svg></div>
+          <p class="product-period">WOII · Herdenking 1945</p>
+          <h3>Bevrijdingsmedaille — replica</h3>
+          <div class="product-foot"><span class="price">&euro;33,50</span><button class="btn-add" type="button">In winkelwagen</button></div>
+        </article>
+
+      </div>
+      <div class="section-cta reveal">
+        <a class="btn btn-outline" href="#">Alle producten bekijken</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- STORY -->
+  <section class="story" id="over-ons">
+    <div class="wrap story-inner">
+      <div class="story-text reveal">
+        <p class="eyebrow">Ons verhaal</p>
+        <h2>Waar archeologie een winkel wordt.</h2>
+        <p>Dutcharcheo begon met een simpele vraag: waarom blijft geschiedenis achter vitrineglas? Wij werken samen met archeologen, historici en ambachtslieden om zorgvuldig gedocumenteerde replica's en originele vondsten toegankelijk te maken — voor wie het verleden niet alleen wil lezen, maar wil vasthouden.</p>
+        <a class="btn btn-ghost" href="#verhalen">Lees hoe wij te werk gaan <svg aria-hidden="true" width="16" height="16"><use href="#icon-arrow"/></svg></a>
+      </div>
+      <blockquote class="story-quote reveal">
+        <p>&ldquo;Elk voorwerp vertelt een verhaal van eeuwen geleden — wij zorgen dat het verhaal bij jou verder gaat.&rdquo;</p>
+        <cite>— Dutcharcheo, oprichters</cite>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- BLOG -->
+  <section class="section" id="verhalen">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Verhalen</p>
+        <h2>Uit de geschiedenis</h2>
+      </div>
+      <div class="blog-grid">
+        <article class="blog-card blog-card-lead reveal">
+          <span class="tag">VOC &amp; Handel</span>
+          <h3>De opkomst en ondergang van de Gouden Eeuw</h3>
+          <p>Hoe een klein handelsland uitgroeide tot wereldmacht — en wat daarvan overbleef in de voorwerpen die wij vandaag nog vinden.</p>
+          <a class="card-link" href="#">Lees meer <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></a>
+        </article>
+        <article class="blog-card reveal">
+          <span class="tag">Archeologie</span>
+          <h3>Wat een Romeinse munt ons vertelt over Limburg</h3>
+          <p>Een kleine vondst, een groot verhaal over handel aan de rand van het Romeinse Rijk.</p>
+          <a class="card-link" href="#">Lees meer <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></a>
+        </article>
+        <article class="blog-card reveal">
+          <span class="tag">WOII</span>
+          <h3>De laatste getuigen: mondelinge geschiedenis bewaren</h3>
+          <p>Waarom wij nu vastleggen wat straks alleen nog in archieven bestaat.</p>
+          <a class="card-link" href="#">Lees meer <svg aria-hidden="true" width="14" height="14"><use href="#icon-arrow"/></svg></a>
+        </article>
+      </div>
+      <div class="section-cta reveal">
+        <a class="btn btn-outline" href="#">Alle verhalen bekijken</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="newsletter">
+    <div class="wrap newsletter-inner reveal">
+      <svg class="ornament" width="120" height="20" viewBox="0 0 120 20" aria-hidden="true">
+        <path d="M0 10h44M76 10h44" stroke="currentColor" stroke-width="1"/>
+        <path d="M60 2l8 8-8 8-8-8 8-8Z" fill="none" stroke="currentColor" stroke-width="1"/>
+      </svg>
+      <p class="eyebrow">Blijf op de hoogte</p>
+      <h2>Nieuwe vondsten, rechtstreeks in je inbox.</h2>
+      <p class="newsletter-sub">Eén keer per maand: nieuwe producten, verhalen uit de Nederlandse geschiedenis en exclusieve aanbiedingen.</p>
+      <form class="newsletter-form" id="newsletterForm" novalidate>
+        <label class="visually-hidden" for="newsletterEmail">E-mailadres</label>
+        <div class="newsletter-field">
+          <svg aria-hidden="true" width="18" height="18"><use href="#icon-mail"/></svg>
+          <input id="newsletterEmail" type="email" name="email" placeholder="jouw@email.nl" required autocomplete="email" aria-describedby="newsletterNote">
+        </div>
+        <button class="btn btn-gold" type="submit">Aanmelden</button>
+      </form>
+      <p class="newsletter-note" id="newsletterNote" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <p class="brand">Dutcharcheo</p>
+      <p>Nederlandse geschiedenis, tastbaar gemaakt. Zorgvuldig samengesteld door archeologen en historici.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Winkel</h4>
+      <a href="#producten">Alle producten</a>
+      <a href="#collecties">Gouden Eeuw</a>
+      <a href="#collecties">Middeleeuwen</a>
+      <a href="#collecties">Archeologie</a>
+    </div>
+    <div class="footer-col">
+      <h4>Verhalen</h4>
+      <a href="#verhalen">Blog</a>
+      <a href="#">Nieuwsbrief</a>
+    </div>
+    <div class="footer-col">
+      <h4>Over ons</h4>
+      <a href="#over-ons">Ons verhaal</a>
+      <a href="#">Vakmanschap</a>
+      <a href="#">Contact</a>
+      <a href="#">Veelgestelde vragen</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>&copy; <span id="year"></span> Dutcharcheo. Alle rechten voorbehouden.</p>
+    <div class="footer-legal">
+      <a href="#">Privacybeleid</a>
+      <a href="#">Voorwaarden</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
