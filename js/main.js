@@ -59,9 +59,11 @@
       e.preventDefault();
       var input = document.getElementById('newsletterEmail');
       if (input && input.checkValidity()) {
+        input.setAttribute('aria-invalid', 'false');
         note.textContent = 'Bedankt! Bevestig je aanmelding via de e-mail die we je sturen.';
         form.reset();
       } else {
+        input.setAttribute('aria-invalid', 'true');
         note.textContent = 'Vul een geldig e-mailadres in.';
         input.focus();
       }

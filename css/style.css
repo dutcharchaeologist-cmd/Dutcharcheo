@@ -13,7 +13,7 @@
 
   --color-text:        #f2ead9;
   --color-text-muted:  #b8ab8e;
-  --color-text-faint:  #8a7c62;
+  --color-text-faint:  #998b6f;
 
   --color-gold:        #c9a227;
   --color-gold-bright: #e8c565;
@@ -49,7 +49,7 @@
    Reset
    ========================================================================== */
 *, *::before, *::after{ box-sizing: border-box; }
-html{ scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html{ scroll-behavior: smooth; scroll-padding-top: 92px; -webkit-text-size-adjust: 100%; }
 body{
   margin: 0;
   background: var(--color-bg);
@@ -432,6 +432,7 @@ p{ color: var(--color-text-muted); }
   color: var(--color-text-faint);
 }
 .newsletter-field:focus-within{ border-color: var(--color-gold); }
+.newsletter-field:has(input[aria-invalid="true"]){ border-color: var(--color-wine); }
 .newsletter-field input{
   border:0; background:transparent; color: var(--color-text);
   padding-block: .95rem; width:100%; font: inherit; min-height: 44px;
