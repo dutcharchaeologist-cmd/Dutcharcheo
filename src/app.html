@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>History Content Engine v5.3</title>
+<meta name="theme-color" content="#F6F3ED">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Post Maker">
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Montserrat:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F1B2A;
+    --ink-2:#152538;
+    --well:#0A1420;
+    --linen:#DCD9CE;
+    --linen-2:#A9A79C;
+    --patina:#3E8E7E;
+    --patina-lo:#2C6A5D;
+    --brass:#C9A227;
+    --line:rgba(220,217,206,.16);
+    --tap:48px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:rgba(62,142,126,.25)}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);
+    color:var(--linen);
+    font-family:"Montserrat",system-ui,sans-serif;
+    font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+
+  /* ---------- preview, blijft in beeld ---------- */
+  .preview{
+    position:sticky;top:0;z-index:20;
+    background:
+      repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0 1px,transparent 1px 34px),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0 1px,transparent 1px 34px),
+      var(--ink-2);
+    border-bottom:1px solid var(--line);
+    padding:10px 12px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+  }
+  canvas{
+    max-width:100%;max-height:38vh;
+    background:#000;display:block;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  .note{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    color:var(--linen-2);letter-spacing:.04em;text-align:center;margin:0;
+  }
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    position:sticky;top:0;z-index:19;
+    display:flex;overflow-x:auto;
+    background:var(--ink);
+    border-bottom:1px solid var(--line);
+    scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex:1 0 auto;
+    min-height:var(--tap);
+    background:transparent;border:0;
+    border-bottom:2px solid transparent;
+    color:var(--linen-2);
+    font-family:"Barlow Condensed",sans-serif;font-weight:700;
+    font-size:15px;letter-spacing:.09em;text-transform:uppercase;
+    padding:0 18px;cursor:pointer;white-space:nowrap;
+  }
+  .tab[aria-selected=true]{color:var(--linen);border-bottom-color:var(--brass)}
+
+  .panes{padding:18px 16px 40px;max-width:640px;margin:0 auto}
+  .pane{display:none}
+  .pane.is-on{display:block}
+  .pane h2{
+    margin:0 0 4px;
+    font-family:"Barlow Condensed",sans-serif;font-weight:700;
+    font-size:22px;letter-spacing:.05em;text-transform:uppercase;
+  }
+  .pane > p.lead{margin:0 0 18px;font-size:13px;color:var(--linen-2)}
+
+  label{display:block;font-size:13px;margin:16px 0 6px;color:var(--linen-2)}
+  input[type=text],textarea,select{
+    width:100%;
+    background:var(--well);
+    border:1px solid rgba(220,217,206,.24);
+    color:var(--linen);border-radius:3px;
+    padding:0 12px;min-height:var(--tap);
+    font-family:inherit;font-size:16px; /* 16px voorkomt inzoomen op iOS */
+  }
+  textarea{min-height:160px;padding:12px;resize:vertical;line-height:1.55;font-size:16px}
+  select{appearance:none;padding-right:34px;
+    background-image:linear-gradient(45deg,transparent 50%,var(--linen-2) 50%),linear-gradient(135deg,var(--linen-2) 50%,transparent 50%);
+    background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;
+    background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+  input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--patina);outline-offset:2px}
+  input[type=range]{width:100%;height:var(--tap);accent-color:var(--patina)}
+
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    flex:1 1 auto;min-height:var(--tap);
+    background:transparent;color:var(--linen-2);
+    border:1px solid rgba(220,217,206,.26);border-radius:3px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.05em;
+    padding:0 10px;cursor:pointer;
+  }
+  .chip[aria-pressed=true]{background:var(--patina);border-color:var(--patina);color:#08131B;font-weight:500}
+
+  .swatches{display:flex;gap:10px;flex-wrap:wrap}
+  .sw{width:44px;height:44px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0}
+  .sw[aria-pressed=true]{border-color:var(--linen)}
+
+  .btn{
+    min-height:var(--tap);border:0;border-radius:3px;
+    padding:0 22px;cursor:pointer;
+    font-family:"Barlow Condensed",sans-serif;font-weight:700;
+    font-size:16px;letter-spacing:.09em;text-transform:uppercase;
+  }
+  .btn-main{background:var(--brass);color:#1A1403}
+  .btn-ghost{background:transparent;color:var(--linen);border:1px solid rgba(220,217,206,.3)}
+  .btn-wide{width:100%}
+  .btn[disabled]{opacity:.5}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+
+  .hint{font-size:12px;color:var(--linen-2);margin:10px 0 0;line-height:1.55}
+  .hint code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:2px;font-family:"IBM Plex Mono",monospace;font-size:11px}
+
+  .pickzone{
+    border:1px dashed rgba(220,217,206,.32);
+    background:var(--well);padding:16px;text-align:center;
+  }
+  .pickzone.is-over{border-color:var(--patina);background:#0E1D2B}
+  .pickzone .name{
+    display:block;margin-top:11px;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;
+    color:var(--patina);word-break:break-all;line-height:1.5;
+  }
+  .pickbtn{
+    background:var(--patina-lo);color:#fff;border:0;border-radius:3px;
+    min-height:var(--tap);padding:0 22px;cursor:pointer;
+    font-family:"Barlow Condensed",sans-serif;font-weight:700;
+    font-size:16px;letter-spacing:.09em;text-transform:uppercase;
+  }
+  /* de bestandskiezer ligt onzichtbaar bovenop de knop:
+     de tik landt op het input-element zelf, zonder tussenkomst van script */
+  .filewrap{position:relative;display:inline-block;overflow:hidden;border-radius:3px}
+  .filewrap input[type=file]{
+    position:absolute;top:0;left:0;
+    width:100%;height:100%;
+    opacity:0;cursor:pointer;
+    font-size:200px;
+  }
+  .nativefile{
+    display:block;width:100%;margin-top:12px;
+    color:var(--linen-2);font-size:13px;
+  }
+  .nativefile::file-selector-button{
+    background:transparent;color:var(--linen);
+    border:1px solid rgba(220,217,206,.3);border-radius:3px;
+    min-height:40px;padding:0 14px;margin-right:10px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;cursor:pointer;
+  }
+  .urlrow{display:flex;gap:8px;margin-top:10px}
+  .urlrow input{flex:1;min-width:0}
+  .urlrow button{
+    background:transparent;border:1px solid rgba(220,217,206,.3);
+    color:var(--linen);border-radius:3px;padding:0 18px;min-height:var(--tap);
+    cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:12px;
+  }
+
+  .out{
+    margin-top:18px;border:1px solid rgba(220,217,206,.2);
+    border-left:3px solid var(--brass);background:var(--well);
+    padding:16px;display:none;
+  }
+  .out.is-on{display:block}
+  .out h3{
+    margin:0 0 10px;font-family:"IBM Plex Mono",monospace;
+    font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--brass);font-weight:500;
+  }
+  .out p{margin:0 0 14px;font-size:14px;line-height:1.65;white-space:pre-wrap}
+  .out .tags{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--patina);word-spacing:.3em;margin-bottom:16px;line-height:1.7}
+  .status{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--linen-2);margin:12px 0 0}
+  .status.err{color:#E8907F}
+  .bitem{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .bitem:last-child{border-bottom:0}
+  .bthumb{width:64px;height:80px;object-fit:cover;background:#0E1D2B;border:1px solid var(--line);flex:none}
+  .bmain{flex:1;min-width:0}
+  .bmain input[type=text]{margin:0}
+  .bstat{margin:6px 0 0;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--linen-2);line-height:1.5;word-break:break-word}
+  .bstat.err{color:#E8907F}
+  .bstat.ok{color:var(--patina)}
+  .bstat.warn{color:#E3B341}
+  .dbg{margin:5px 0 0;font-family:"IBM Plex Mono",monospace;font-size:10.5px;line-height:1.5;color:var(--linen-2);opacity:.8;word-break:break-all}
+  .bfix{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .bfix input{margin:0;flex:1 1 120px;min-width:0}
+  .btn.mini{padding:9px 14px;font-size:12px;flex:0 0 auto;width:auto}
+  .sum{margin-top:12px;font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--linen-2)}
+  .ptable{width:100%;border-collapse:collapse;margin-top:12px;font-family:"IBM Plex Mono",monospace;font-size:11px}
+  .ptable th,.ptable td{border-bottom:1px solid var(--line);padding:7px 4px;text-align:left;vertical-align:top}
+  .ptable th{color:var(--linen-2);font-weight:500}
+  .ptable td.bad{color:#E8907F}
+  .bnum{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--linen-2);display:block;margin-bottom:4px}
+  .half{display:flex;gap:8px}
+  .half>div{flex:1;min-width:0}
+
+  /* ---------- opslaan-scherm ---------- */
+  .sheet{
+    position:fixed;inset:0;z-index:60;
+    background:rgba(6,11,17,.96);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;padding:22px;
+  }
+  .sheet.is-on{display:flex}
+  .sheet img{max-width:100%;max-height:64vh;border:1px solid rgba(220,217,206,.25)}
+  .sheet p{margin:0;text-align:center;font-size:14px;max-width:340px;color:var(--linen)}
+
+  @media (min-width:900px){
+    body{display:grid;grid-template-columns:1fr minmax(360px,460px);min-height:100vh}
+    .preview{grid-row:1/3;position:sticky;height:100vh;justify-content:center;border-bottom:0;border-right:1px solid var(--line)}
+    canvas{max-height:82vh}
+    .tabs{grid-column:2}
+    .panes{grid-column:2;padding:22px 26px 60px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .btn,.pickbtn{transition:filter .15s ease}
+    .btn:hover,.pickbtn:hover{filter:brightness(1.12)}
+  }
+
+
+  /* ---------- v2: bulk cockpit ---------- */
+  .bulk-cockpit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 18px}
+  .kpi{background:var(--well);border:1px solid var(--line);padding:12px;border-radius:3px}
+  .kpi strong{display:block;font-family:"Barlow Condensed",sans-serif;font-size:26px;line-height:1;color:var(--linen)}
+  .kpi span{display:block;margin-top:5px;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--linen-2)}
+  .bulk-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .bulk-toolbar .btn{flex:1 1 150px}
+  .bitem[data-problem="true"]{border-left:3px solid #E8907F;padding-left:9px}
+  .bitem[data-ready="true"]{border-left:3px solid var(--patina);padding-left:9px}
+  .hookmeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .badge{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:3px 6px;border:1px solid var(--line);color:var(--linen-2);border-radius:2px}
+  .badge.bad{color:#E8907F;border-color:rgba(232,144,127,.45)}
+  .badge.ok{color:var(--patina);border-color:rgba(62,142,126,.45)}
+  .bmove{display:flex;gap:5px;margin-top:6px}
+  .bmove button{min-height:34px;padding:0 10px}
+  @media (min-width:520px){.bulk-cockpit{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+  /* ---------- v3: review + quality gate ---------- */
+  .quality-gate{margin:12px 0 18px;padding:12px;background:var(--well);border:1px solid var(--line);border-radius:3px}
+  .quality-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .quality-head strong{font-family:"Barlow Condensed",sans-serif;font-size:20px}
+  .gate-pill{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:4px 7px;border:1px solid var(--line);border-radius:2px;text-transform:uppercase;letter-spacing:.06em}
+  .gate-pill.good{color:var(--patina);border-color:rgba(62,142,126,.45)}
+  .gate-pill.bad{color:#E8907F;border-color:rgba(232,144,127,.45)}
+  .quality-list{display:grid;gap:5px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--linen-2)}
+  .quality-list .bad{color:#E8907F}.quality-list .good{color:var(--patina)}
+  .bdetails{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+  .bdetails summary{cursor:pointer;font-size:12px;color:var(--linen-2);font-weight:700}
+  .bdetails textarea{min-height:150px;margin-top:8px;font-size:13px;line-height:1.45}
+  .bdetails .srcrow{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
+  .score{font-weight:700}.score.high{color:var(--patina)}.score.mid{color:var(--brass)}.score.low{color:#E8907F}
+  .review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 18px}
+  .review-card{background:var(--well);border:1px solid var(--line);padding:7px;border-radius:3px}
+  .review-card img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#05090d}
+  .review-card p{margin:6px 0 0;font-size:10px;line-height:1.25;color:var(--linen-2)}
+  .review-card.bad{border-color:rgba(232,144,127,.6)}
+  @media (min-width:520px){.review-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+
+  /* ---------- v4: mobile-first content cockpit ---------- */
+  :root{--danger:#E8907F;--ok:#54B69C;--card:#101F2E;--card2:#0C1824}
+  .v4-hero{position:relative;overflow:hidden;margin:-4px 0 14px;padding:18px 16px 16px;border:1px solid rgba(201,162,39,.28);border-radius:14px;background:linear-gradient(145deg,rgba(201,162,39,.12),rgba(62,142,126,.08) 48%,rgba(10,20,32,.96));box-shadow:0 18px 42px rgba(0,0,0,.22)}
+  .v4-hero:after{content:"";position:absolute;right:-55px;top:-65px;width:170px;height:170px;border:1px solid rgba(201,162,39,.16);border-radius:50%;box-shadow:0 0 0 28px rgba(201,162,39,.035),0 0 0 56px rgba(201,162,39,.025)}
+  .v4-kicker{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass)}
+  .v4-hero h1{position:relative;z-index:1;margin:5px 0 4px;font-family:"Barlow Condensed",sans-serif;font-size:32px;line-height:.98;text-transform:uppercase;letter-spacing:.035em}
+  .v4-hero p{position:relative;z-index:1;margin:0;max-width:500px;color:var(--linen-2);font-size:12px}
+  .v4-live{position:relative;z-index:1;display:flex;align-items:center;gap:8px;margin-top:14px;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--linen-2)}
+  .v4-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 4px rgba(232,144,127,.10)}
+  .v4-dot.good{background:var(--ok);box-shadow:0 0 0 4px rgba(84,182,156,.10)}
+  .progress-shell{height:7px;background:#08111A;border:1px solid rgba(220,217,206,.10);border-radius:99px;overflow:hidden;margin:12px 0 4px}
+  .progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--patina),var(--brass));transition:width .25s ease}
+  .bulk-cockpit{margin-top:10px}.kpi{border-radius:10px;background:linear-gradient(180deg,var(--card),var(--card2));box-shadow:0 8px 20px rgba(0,0,0,.15)}
+  .kpi strong{font-size:30px}.kpi span{font-size:9px}
+  .section-card{background:rgba(10,20,32,.7);border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .section-title strong{font-family:"Barlow Condensed",sans-serif;font-size:18px;text-transform:uppercase;letter-spacing:.045em}
+  .filterbar{display:flex;gap:6px;overflow:auto;padding:2px 0 8px;scrollbar-width:none}.filterbar::-webkit-scrollbar{display:none}
+  .filter-chip{flex:none;min-height:36px;border:1px solid var(--line);background:transparent;color:var(--linen-2);border-radius:99px;padding:0 12px;font-family:"IBM Plex Mono",monospace;font-size:10px;cursor:pointer}
+  .filter-chip[aria-pressed=true]{background:var(--linen);color:#0A1420;border-color:var(--linen)}
+  .advanced-settings{margin:18px 0 12px;border:1px solid var(--line);border-radius:12px;background:rgba(10,20,32,.62);overflow:hidden}
+  .advanced-settings>summary{list-style:none;cursor:pointer;padding:15px 14px;font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:16px}
+  .advanced-settings>summary::-webkit-details-marker{display:none}.advanced-settings>summary:after{content:"＋";float:right;color:var(--brass)}.advanced-settings[open]>summary:after{content:"−"}
+  .advanced-body{padding:0 14px 16px;border-top:1px solid var(--line)}
+  .quality-gate{border-radius:12px;background:linear-gradient(180deg,var(--card),var(--card2));padding:14px}.gate-pill{border-radius:99px;padding:5px 9px}
+  .bitem{margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(10,20,32,.72)}
+  .bitem[data-problem="true"]{padding-left:10px}.bitem[data-ready="true"]{padding-left:10px}
+  .bthumb{width:72px;height:90px;border-radius:8px;overflow:hidden}.bmain input[type=text]{border-radius:8px}
+  .bdetails{border-top:0}.bdetails summary{background:rgba(255,255,255,.025);border-radius:7px;padding:8px 9px}
+  .review-card{border-radius:10px;overflow:hidden;padding:6px}.review-card img{border-radius:6px}
+  .mobile-actionbar{display:none}
+  body.bulk-mode .preview{display:none}
+  body.bulk-mode .panes{padding-top:12px}
+  @media(max-width:899px){
+    body{padding-bottom:calc(126px + env(safe-area-inset-bottom))}
+    .tabs{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:80;height:64px;padding-bottom:env(safe-area-inset-bottom);background:rgba(10,20,32,.97);backdrop-filter:blur(18px);border-top:1px solid var(--line);border-bottom:0;box-shadow:0 -12px 30px rgba(0,0,0,.28)}
+    .tab{min-height:62px;padding:0 9px;font-size:11px;letter-spacing:.045em;border-bottom:0;border-top:2px solid transparent}
+    .tab[aria-selected=true]{border-top-color:var(--brass);border-bottom-color:transparent;color:var(--brass)}
+    .panes{padding:14px 12px 32px;max-width:none}
+    .mobile-actionbar{position:fixed;display:none;left:8px;right:8px;bottom:calc(69px + env(safe-area-inset-bottom));z-index:79;gap:7px;padding:7px;border:1px solid rgba(220,217,206,.13);border-radius:14px;background:rgba(10,20,32,.94);backdrop-filter:blur(18px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+    body.bulk-mode .mobile-actionbar{display:flex}
+    .mobile-actionbar .btn{flex:1;min-height:48px;padding:0 8px;font-size:12px;border-radius:9px}
+    .bulk-toolbar{display:none}
+    .quality-head strong{font-size:18px}
+    .v4-hero h1{font-size:34px}
+  }
+  @media(min-width:900px){
+    body.bulk-mode{display:block;min-height:100vh}
+    body.bulk-mode .tabs{position:sticky;top:0;max-width:940px;margin:0 auto}
+    body.bulk-mode .panes{grid-column:auto;max-width:940px;padding:24px 28px 70px}
+    body.bulk-mode .preview{display:none}
+    .v4-hero{padding:24px}.v4-hero h1{font-size:42px}
+  }
+
+
+  /* ================================================================
+     PREMIUM LIGHT DESIGN SYSTEM
+     ================================================================ */
+  :root{
+    --ink:#F6F3ED;
+    --ink-2:#FFFFFF;
+    --well:#FFFFFF;
+    --linen:#15202A;
+    --linen-2:#6E756F;
+    --patina:#2E796C;
+    --patina-lo:#235E55;
+    --brass:#B99754;
+    --line:rgba(21,32,42,.10);
+    --danger:#C8695D;
+    --ok:#2E8B74;
+    --card:#FFFFFF;
+    --card2:#FBFAF7;
+    --surface:#FFFFFF;
+    --surface-soft:#FBFAF7;
+    --surface-tint:#F0F4F1;
+    --shadow:0 16px 40px rgba(35,43,48,.08);
+    --shadow-soft:0 6px 18px rgba(35,43,48,.06);
+    --radius:18px;
+  }
+  *{-webkit-tap-highlight-color:rgba(46,121,108,.12)}
+  body{
+    background:
+      radial-gradient(circle at 8% -10%,rgba(185,151,84,.08),transparent 28rem),
+      radial-gradient(circle at 100% 12%,rgba(46,121,108,.055),transparent 26rem),
+      #F6F3ED;
+    color:var(--linen);
+    font-family:"Manrope",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-weight:500;
+  }
+  .pane h2,.section-title strong,.quality-head strong,.btn,.pickbtn,.advanced-settings>summary,.kpi strong{
+    font-family:"Manrope",system-ui,sans-serif;
+    letter-spacing:-.02em;
+  }
+  .pane h2,.section-title strong,.advanced-settings>summary{text-transform:none}
+  .note,.kpi span,.v4-kicker,.v4-live,.filter-chip,.badge,.gate-pill{font-family:"IBM Plex Mono",monospace}
+
+  /* Header / hero */
+  .v4-hero{
+    margin:0 0 18px;
+    padding:23px 21px 20px;
+    border:1px solid rgba(21,32,42,.075);
+    border-radius:24px;
+    background:
+      linear-gradient(135deg,rgba(255,255,255,.98),rgba(250,249,245,.96)),
+      #fff;
+    box-shadow:0 22px 60px rgba(39,45,49,.09);
+  }
+  .v4-hero:before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(180deg,var(--brass),var(--patina));
+  }
+  .v4-hero:after{
+    right:-70px;top:-80px;width:210px;height:210px;
+    border-color:rgba(185,151,84,.11);
+    box-shadow:0 0 0 34px rgba(185,151,84,.025),0 0 0 68px rgba(46,121,108,.018);
+  }
+  .v4-kicker{font-size:9px;letter-spacing:.17em;color:#8B7141;font-weight:500}
+  .v4-hero h1{
+    color:#15202A;font-family:"Manrope",system-ui,sans-serif;
+    font-size:31px;font-weight:800;line-height:1.04;text-transform:none;letter-spacing:-.045em;
+  }
+  .v4-hero p{color:#707875;font-size:12.5px;line-height:1.55}
+  .v4-live{color:#757D79;font-size:9.5px}
+  .v4-dot{box-shadow:0 0 0 4px rgba(200,105,93,.09)}
+  .v4-dot.good{box-shadow:0 0 0 4px rgba(46,139,116,.10)}
+
+  /* Main cards and KPI */
+  .bulk-cockpit{gap:10px;margin:14px 0 20px}
+  .kpi{
+    min-height:94px;padding:16px 15px;
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(21,32,42,.075);
+    border-radius:18px;
+    box-shadow:var(--shadow-soft);
+  }
+  .kpi strong{font-size:31px;font-weight:800;color:#17222B}
+  .kpi span{margin-top:9px;font-size:8.5px;color:#8B918D;letter-spacing:.08em}
+  .section-card,.quality-gate,.advanced-settings,.bitem,.review-card{
+    background:rgba(255,255,255,.94);
+    border:1px solid rgba(21,32,42,.08);
+    box-shadow:var(--shadow-soft);
+  }
+  .section-card{border-radius:20px;padding:16px;margin:14px 0}
+  .section-title{margin-bottom:10px}
+  .section-title strong{font-size:17px;font-weight:800;color:#1A252E}
+  .quality-gate{border-radius:20px;padding:16px}
+  .quality-head strong{font-size:18px;font-weight:800;color:#18242D}
+  .quality-list{color:#717975}
+  .bitem{border-radius:18px;padding:13px;margin:10px 0}
+  .bitem[data-problem="true"]{border-left:4px solid rgba(200,105,93,.78);padding-left:13px}
+  .bitem[data-ready="true"]{border-left:4px solid rgba(46,139,116,.78);padding-left:13px}
+  .bthumb{border-radius:12px;box-shadow:0 5px 14px rgba(24,36,45,.10)}
+  .review-card{border-radius:16px;padding:8px}.review-card img{border-radius:11px}
+
+  /* Inputs */
+  label{color:#747C78;font-size:12px;font-weight:700;margin-top:18px}
+  input[type=text],input[type=date],textarea,select{
+    background:#FCFBF8;
+    color:#17222B;
+    border:1px solid rgba(21,32,42,.12);
+    border-radius:13px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  input::placeholder,textarea::placeholder{color:#A1A7A3}
+  input:focus,textarea:focus,select:focus,button:focus-visible{
+    outline:none;border-color:rgba(46,121,108,.55);
+    box-shadow:0 0 0 4px rgba(46,121,108,.09);
+  }
+  select{
+    background-color:#FCFBF8;
+    background-image:linear-gradient(45deg,transparent 50%,#727A76 50%),linear-gradient(135deg,#727A76 50%,transparent 50%);
+  }
+  .bdetails summary{
+    background:#F7F6F2;color:#68716D;border:1px solid rgba(21,32,42,.06);
+    border-radius:11px;padding:10px 11px;
+  }
+
+  /* Buttons */
+  .btn,.pickbtn{
+    border-radius:13px;font-weight:800;letter-spacing:-.01em;text-transform:none;
+    box-shadow:none;
+  }
+  .btn-main{
+    background:#1E5F55;color:#fff;
+    box-shadow:0 8px 18px rgba(30,95,85,.18);
+  }
+  .btn-main:hover{filter:none;background:#174F47}
+  .btn-ghost,.pickbtn{
+    background:#FFFFFF;color:#26333B;border:1px solid rgba(21,32,42,.11);
+    box-shadow:0 3px 10px rgba(31,42,49,.045);
+  }
+  .btn-ghost:hover,.pickbtn:hover{filter:none;background:#F8F7F3}
+  .chip{
+    background:#fff;color:#67706C;border-color:rgba(21,32,42,.11);
+    border-radius:13px;font-family:"Manrope",sans-serif;font-weight:700;font-size:11px;
+  }
+  .chip[aria-pressed=true]{background:#E8F1EE;border-color:#B9D1CA;color:#1E675B;font-weight:800}
+  .filterbar{gap:8px;padding-bottom:10px}
+  .filter-chip{
+    min-height:37px;background:#fff;color:#747C78;border-color:rgba(21,32,42,.10);
+    box-shadow:0 3px 10px rgba(31,42,49,.035);
+  }
+  .filter-chip[aria-pressed=true]{background:#17222B;color:#fff;border-color:#17222B}
+  .badge{background:#F9F8F5;border-color:rgba(21,32,42,.08);color:#78807C;border-radius:8px;padding:4px 7px}
+  .badge.bad{background:#FFF5F3;color:#B65C52;border-color:#F0C5BF}
+  .badge.ok{background:#F0F8F5;color:#277762;border-color:#C3DED5}
+  .gate-pill{background:#F9F8F5;border-color:rgba(21,32,42,.09);border-radius:99px;padding:6px 10px}
+  .gate-pill.good{background:#EDF8F4;color:#287761;border-color:#C2DED5}
+  .gate-pill.bad{background:#FFF3F1;color:#B85D52;border-color:#F0C4BD}
+
+  /* Progress */
+  .progress-shell{height:8px;background:#EDEBE5;border:0;border-radius:99px;margin-top:15px}
+  .progress-bar{background:linear-gradient(90deg,#2E796C,#B99754)}
+
+  /* Settings */
+  .advanced-settings{border-radius:20px;overflow:hidden}
+  .advanced-settings>summary{padding:17px 16px;font-size:14px;font-weight:800;color:#25323A}
+  .advanced-settings>summary:after{color:#8D7442;font-size:18px}
+  .advanced-body{border-top-color:rgba(21,32,42,.07)}
+
+  /* Original maker / preview */
+  .preview{
+    background:#F0EEE8;border-bottom-color:rgba(21,32,42,.08);
+  }
+  canvas{box-shadow:0 16px 34px rgba(26,34,39,.16);border-radius:12px}
+  .note{color:#7E8581}
+  .tabs{
+    background:rgba(255,255,255,.94);
+    border-bottom-color:rgba(21,32,42,.08);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  }
+  .tab{color:#818884;font-family:"Manrope",sans-serif;font-weight:700;text-transform:none;letter-spacing:-.01em}
+  .tab[aria-selected=true]{color:#1F6258;border-bottom-color:#1F6258}
+
+  /* Mobile nav + action bar */
+  @media(max-width:899px){
+    .tabs{
+      left:10px;right:10px;bottom:10px;height:66px;border:1px solid rgba(21,32,42,.08);
+      border-radius:20px;background:rgba(255,255,255,.94);
+      box-shadow:0 16px 42px rgba(32,40,45,.13);
+    }
+    .tab{color:#838A86;font-size:11px;border-top:0;padding:0 10px}
+    .tab[aria-selected=true]{color:#1F6258;border-top:0}
+    .mobile-actionbar{
+      left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));
+      padding:8px;border:1px solid rgba(21,32,42,.08);border-radius:18px;
+      background:rgba(255,255,255,.96);
+      box-shadow:0 14px 38px rgba(32,40,45,.14);
+    }
+    .mobile-actionbar .btn{border-radius:12px;font-size:11px}
+    body{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+    .panes{padding:14px 13px 34px}
+    .v4-hero{padding:21px 18px 19px}.v4-hero h1{font-size:31px}
+  }
+  @media(min-width:900px){
+    body.bulk-mode .tabs{max-width:1040px;border-radius:0 0 18px 18px;box-shadow:0 8px 24px rgba(32,40,45,.05)}
+    body.bulk-mode .panes{max-width:1040px;padding:32px 34px 80px}
+    .v4-hero{padding:30px}.v4-hero h1{font-size:44px}
+  }
+
+.posrow{flex-wrap:wrap;gap:6px;margin-top:8px}
+.posrow[hidden]{display:none}
+.filerow{flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.filechip{cursor:pointer}
+.apply{margin-top:10px}
+.apply[hidden]{display:none}
+.posrow .chip{font-size:12px;padding:5px 10px}
+.poslabel{font-size:12px;opacity:.7;width:100%;margin-bottom:2px}
+/* v4.3: readable mobile cards, actual uncropped previews */
+.bitem{display:block}.bthumb{width:100%;height:auto;max-height:420px;object-fit:contain;background:#eae8e0;cursor:zoom-in;margin-bottom:14px}.bthumb:not([src]){display:none}
+.review-card img{object-fit:contain;aspect-ratio:auto;min-height:100px}.review-card img:not([src]){display:none}
+.bmove button,.filter-chip,.btn.mini,summary{min-height:44px}.dbg{color:#666f68;opacity:1}
+input[type=date],input[type=time]{min-height:48px;width:100%;padding:10px;font:inherit;color:#17222B;background:#FCFBF8;border:1px solid #d5d9d3;border-radius:12px}
+input[type=color]{min-height:48px;width:100%;border:1px solid #d5d9d3;border-radius:12px;background:#fff}
+input[type=password]{min-height:48px;width:100%;padding:12px;font:inherit;border:1px solid #d5d9d3;border-radius:12px}
+.bdetails textarea{font-size:16px}.sheet p{color:#f5f1e6}.nativefile{max-width:100%}button:disabled{cursor:wait}
+.bulk-toolbar{display:flex}.bulk-toolbar .btn{flex:1 1 130px;font-size:13px}.ptable{display:block;overflow-x:auto}
+@media(max-width:420px){.half{flex-wrap:wrap}.half>div{flex:1 1 110px}.bfix{display:grid;grid-template-columns:1fr 1fr}.bfix input{min-width:0}.tab{padding:0 8px;flex:1 1 0;min-width:0}.panes{padding:14px 10px 40px}}
+@media(min-width:900px){#bulkList{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}.bitem{margin:0}.review-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* v5.2 performance intelligence */
+.perf-panel{margin:16px 0;padding:18px;border-radius:20px;background:#fff;border:1px solid #e3e7e2;box-shadow:0 8px 24px #14221a0c}
+.perf-panel h3{margin:0 0 7px;font-size:18px}.perf-panel p{font-size:12px;color:#69746e}
+.perf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.perf-stat{background:#f4f7f4;padding:12px;border-radius:12px}.perf-stat strong{display:block;font-size:22px;color:#205e52}.perf-stat small{font-size:10px;color:#6c7770}
+.perf-table{width:100%;border-collapse:collapse;font-size:12px}.perf-table td,.perf-table th{padding:9px 5px;border-bottom:1px solid #e8eae7;text-align:left}.perf-table th{font-size:10px;color:#6c7770}.perf-table td:last-child{text-align:right}
+.perf-tag{display:inline-block;padding:3px 7px;border-radius:8px;background:#e9f4ed;color:#236448;font-size:11px}
+.perf-panel input[type=file]{max-width:100%;font-size:12px}.perf-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.perf-actions button{flex:1 1 125px}
+
+/* ================================================================
+   v5.3 — overzicht: stappen, navigatie, toast, analyse-dashboard
+   ================================================================ */
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(min-width:900px){.tab{flex-direction:row;gap:8px}.tab svg{width:17px;height:17px}}
+.step{background:rgba(255,255,255,.96);border:1px solid rgba(21,32,42,.08);border-radius:20px;box-shadow:var(--shadow-soft);padding:16px;margin:14px 0}
+.step-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:6px}
+.step-head strong{display:block;font-size:17px;font-weight:800;color:#1A252E;letter-spacing:-.02em}
+.step-head small{display:block;font-size:12px;color:#747C78;line-height:1.45;margin-top:2px}
+.step-num{flex:none;width:32px;height:32px;border-radius:50%;background:#E8F1EE;color:#1E675B;display:grid;place-items:center;font-weight:800;font-size:15px}
+.step .actions{margin-top:12px}
+.step .actions .btn{flex:1 1 140px}
+@media(max-width:520px){.step .actions .btn,.mobile-actionbar .btn{font-size:14px;line-height:1.2;padding:8px 12px}}
+.mini-details{margin:12px 0 4px}
+.mini-details>summary{cursor:pointer;font-size:13px;font-weight:800;color:#3A4740;padding:10px 12px;background:#F7F6F2;border:1px solid rgba(21,32,42,.06);border-radius:11px;min-height:44px;display:flex;align-items:center}
+.table-wrap{overflow-x:auto;margin-top:10px}
+.perf-table{min-width:100%}
+.perf-table td.num,.perf-table th.num{text-align:right;white-space:nowrap}
+.perf-table tr.sel-main td:first-child{box-shadow:inset 3px 0 0 #2E796C}
+.perf-table tr.sel-reserve td:first-child{box-shadow:inset 3px 0 0 #B99754}
+.perf-table tr.sel-out td{opacity:.55}
+.perf-table tr.clickable{cursor:pointer}
+.perf-table tr.expanded td{white-space:pre-wrap}
+.perf-table .why{display:block;font-size:10.5px;color:#7A827E;margin-top:2px;line-height:1.35}
+.bar{display:inline-block;height:8px;border-radius:0 4px 4px 0;background:#2E796C;vertical-align:middle;margin-right:6px;min-width:2px}
+.bar.low{background:#C9C6BC}
+.lowdata{color:#A07A3A;font-size:10px;display:block}
+.perf-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:620px){.perf-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.perf-stat strong{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.advice{margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55;color:#2D3934}
+.advice li{margin:6px 0}
+.map-panel{padding:14px;border:1px solid #c9dcd4;border-radius:14px;margin-top:12px;background:#f5faf7}
+.map-grid{display:grid;grid-template-columns:1fr;gap:0 12px}
+@media(min-width:620px){.map-grid{grid-template-columns:1fr 1fr}}
+.scatter{width:100%;margin-top:8px;position:relative}
+.scatter svg{width:100%;height:auto;display:block}
+.scatter .tip{position:absolute;pointer-events:none;background:#17222B;color:#fff;font-size:11px;line-height:1.4;padding:6px 8px;border-radius:8px;max-width:240px;display:none;z-index:2}
+.toast{pointer-events:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom));z-index:90;max-width:min(92vw,520px);background:#17222B;color:#fff;font-size:13px;line-height:1.45;padding:11px 15px;border-radius:14px;box-shadow:0 14px 38px rgba(0,0,0,.25)}
+.toast.err{background:#8E3B32}
+@media(min-width:900px){.toast{bottom:24px}}
+.slot{font-weight:800}
+.badge.slot-main{background:#E8F1EE;color:#1E675B;border-color:#B9D1CA}
+.badge.slot-reserve{background:#FBF4E6;color:#8B6A2B;border-color:#E6D3AC}
+.badge.slot-out{background:#F2F2F0;color:#7C817E}
+.commons{margin-top:10px;padding:10px;border:1px solid rgba(21,32,42,.08);border-radius:14px;background:#FBFAF7}
+.commons .urlrow{margin-top:6px}
+.commons-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+@media(min-width:620px){.commons-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.commons-card{border:1px solid rgba(21,32,42,.1);border-radius:12px;background:#fff;padding:6px;font-size:10.5px;line-height:1.35;color:#5E6762;display:flex;flex-direction:column;gap:5px}
+.commons-card img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:#eee}
+.commons-card .btn{min-height:38px;font-size:12px;padding:0 8px}
+.searchlinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.searchlinks a{font-size:11.5px;color:#1E675B;border:1px solid #C3DED5;border-radius:99px;padding:6px 10px;text-decoration:none;background:#fff}
+.credit{font-size:11px;color:#6A736E;margin:6px 0 0;word-break:break-word}
+body.today-mode .mobile-actionbar{display:flex}
+@media(min-width:900px){body.today-mode .mobile-actionbar{display:none}}
+@media(max-width:899px){body:not(.today-mode) .mobile-actionbar{display:none!important}}
+</style>
+</head>
+<body class="bulk-mode today-mode">
+
+<div class="preview">
+  <canvas id="cv" width="1080" height="1350"></canvas>
+  <p class="note" id="note">Kies een foto om te beginnen.</p>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Hoofdnavigatie">
+  <button class="tab" role="tab" data-pane="bulk" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>Vandaag</span></button>
+  <button class="tab" role="tab" data-pane="perf" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>Analyse</span></button>
+  <button class="tab" role="tab" data-pane="editor" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg><span>Editor</span></button>
+  <button class="tab" role="tab" data-pane="stijl" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h8"/></svg><span>Stijl</span></button>
+  <button class="tab" role="tab" data-pane="instellingen" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Instellingen</span></button>
+</nav>
+
+<div class="panes">
+
+  <!-- ============ VANDAAG ============ -->
+  <section class="pane is-on" id="pane-bulk" role="tabpanel">
+    <div class="v4-hero">
+      <div class="v4-kicker">History Content Engine v5.3</div>
+      <h1>Vandaag bouwen</h1>
+      <p>Inlezen, selecteren, beelden maken en exporteren. Er wordt nooit automatisch gepubliceerd.</p>
+      <div class="v4-live"><span class="v4-dot" id="liveDot"></span><span id="liveText">Nog geen batch geladen</span></div>
+      <div class="progress-shell" aria-label="Batchvoortgang"><div class="progress-bar" id="batchProgress"></div></div>
+    </div>
+
+    <div class="bulk-cockpit" id="bulkCockpit">
+      <div class="kpi"><strong id="kpiItems">0</strong><span>items</span></div>
+      <div class="kpi"><strong id="kpiReady">0</strong><span>klaar</span></div>
+      <div class="kpi"><strong id="kpiProblems">0</strong><span>problemen</span></div>
+      <div class="kpi"><strong id="kpiDuplicates">0</strong><span>mogelijke dubbels</span></div>
+    </div>
+
+    <!-- STAP 1 -->
+    <section class="step" id="step1">
+      <div class="step-head"><span class="step-num">1</span><div><strong>Batch inlezen</strong><small>Plak de ochtendoutput: 12 posts en 5 reserves.</small></div></div>
+      <label>Merk</label>
+      <div class="row" id="brand">
+        <button class="chip" data-v="dutch" aria-pressed="true">The Dutch Archaeologist</button>
+        <button class="chip" data-v="teacher" aria-pressed="false">History Teacher</button>
+      </div>
+      <p class="hint" id="brandHint"></p>
+      <label for="bulkIn">Plak hier alle items</label>
+      <textarea id="bulkIn" spellcheck="false" placeholder="Plak de volledige tekst. De app zoekt zelf naar IMAGE HOOK, IMAGE STORY, FACEBOOK CAPTION, DIRECT DOWNLOAD, IMAGE SOURCE en een RESERVES-blok."></textarea>
+      <div class="actions">
+        <button class="btn btn-main btn-wide" id="bulkParse">Lees de tekst</button>
+        <button class="btn btn-ghost" id="bulkSaveDraft">Concept bewaren</button>
+        <button class="btn btn-ghost" id="bulkRestoreDraft" hidden>Concept terugzetten</button>
+      </div>
+    </section>
+
+    <!-- STAP 2 -->
+    <section class="step" id="step2">
+      <div class="step-head"><span class="step-num">2</span><div><strong>Selecteren &amp; rangschikken</strong><small>Op basis van je eigen prestaties, beeld, hook, bronnen en dubbels.</small></div></div>
+      <p class="hint" id="selStatus">Lees eerst een batch in.</p>
+      <div class="actions">
+        <button class="btn btn-main btn-wide" id="perfSelect">Kies beste 12 + 5 reserves</button>
+        <button class="btn btn-ghost" id="perfRank">Alleen rangschikken</button>
+        <button class="btn btn-ghost" id="perfUndo" hidden>Oorspronkelijke volgorde</button>
+      </div>
+      <div class="table-wrap"><table class="perf-table" id="perfTable"><thead><tr><th>#</th><th>Onderwerp / hook</th><th>Score</th></tr></thead><tbody id="perfResults"><tr><td colspan="3">Nog geen batch ingelezen.</td></tr></tbody></table></div>
+      <details class="mini-details"><summary>Hoe wordt de score berekend?</summary>
+        <p class="hint">Prestaties van vergelijkbare onderwerpen in je eigen RepostHQ-data (45%), opbrengst per 1.000 views van dat onderwerp (15%), beeldpotentieel (15%), hookkwaliteit (15%) en aanwezigheid van verificatiebronnen (10%). Dubbels in de batch en onderwerpen die al eerder geplaatst zijn krijgen een aftrek, tenzij ze als DOUBLE-DOWN of NEW ANGLE zijn gemarkeerd. Zonder geïmporteerde data gelden de voorlopige referentiewaarden. Het is een prioriteitsvolgorde, geen voorspelling van bereik.</p>
+      </details>
+      <button class="btn btn-ghost mini" id="perfExport">Download ranglijst CSV</button>
+    </section>
+
+    <!-- STAP 3 -->
+    <section class="step" id="step3">
+      <div class="step-head"><span class="step-num">3</span><div><strong>Beelden &amp; previews</strong><small>Echte afbeeldingen eerst. Per post: Commons zoeken, link plakken of eigen bestand.</small></div></div>
+      <div class="actions">
+        <button class="btn btn-main btn-wide" id="previewAll">Render alle previews</button>
+        <button class="btn btn-ghost" id="bulkRetryFailed">Alleen fouten opnieuw</button>
+      </div>
+      <div class="filterbar" id="bulkFilters" aria-label="Filter posts">
+        <button class="filter-chip" data-filter="all" aria-pressed="true">Alles</button>
+        <button class="filter-chip" data-filter="main" aria-pressed="false">Hoofdposts</button>
+        <button class="filter-chip" data-filter="reserve" aria-pressed="false">Reserves</button>
+        <button class="filter-chip" data-filter="problems" aria-pressed="false">Aandacht</button>
+        <button class="filter-chip" data-filter="ready" aria-pressed="false">Klaar</button>
+        <button class="filter-chip" data-filter="duplicates" aria-pressed="false">Dubbels</button>
+      </div>
+      <div id="bulkList"></div>
+    </section>
+
+    <!-- STAP 4 -->
+    <section class="step" id="step4">
+      <div class="step-head"><span class="step-num">4</span><div><strong>Controleren &amp; exporteren</strong><small>Alleen complete hoofdposts gaan mee in de CSV.</small></div></div>
+      <div class="quality-gate" id="qualityGate">
+        <div class="quality-head"><strong>Aandachtspunten</strong><span class="gate-pill bad" id="gatePill">nog niets ingelezen</span></div>
+        <div class="quality-list" id="gateList"></div>
+      </div>
+      <details class="mini-details">
+        <summary>Alle eindbeelden bekijken</summary>
+        <div class="review-grid" id="reviewGrid"></div>
+      </details>
+      <details class="mini-details">
+        <summary>Planning</summary>
+        <label for="bulkDate">Startdatum</label>
+        <input type="date" id="bulkDate">
+        <div class="actions">
+          <button class="btn btn-ghost mini" id="bulkApply">Standaardschema toepassen</button>
+          <button class="btn btn-ghost mini" id="bulkRecalc">Schema herberekenen</button>
+        </div>
+        <p class="hint">Toepassen laat handmatig gewijzigde tijden staan. Herberekenen overschrijft alles.</p>
+      </details>
+      <div class="actions">
+        <button class="btn btn-ghost" id="bulkCheck">Controleer</button>
+        <button class="btn btn-ghost" id="uploadPreviews">Upload naar Cloudinary</button>
+        <button class="btn btn-main" id="bulkCsv">Download Metricool-CSV</button>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="bulkZip">Alle beelden (ZIP)</button>
+        <button class="btn btn-ghost" id="bulkImgs">Beelden los opslaan</button>
+        <button class="btn btn-ghost" id="bulkSources">Bronnenlijst</button>
+      </div>
+      <details class="mini-details">
+        <summary>Snelroute: alles in één keer</summary>
+        <p class="hint">Rendert wat nog niet klaar is, uploadt naar Cloudinary en downloadt direct de CSV. Controleer het resultaat daarna altijd.</p>
+        <button class="btn btn-ghost btn-wide" id="bulkOneClick">Alles in één keer</button>
+      </details>
+      <p class="status" id="bulkStatus" role="status"></p>
+      <div class="sum" id="bulkSummary"></div>
+      <div id="bulkTable"></div>
+      <p class="hint">De CSV wordt als UTF-8 met BOM opgeslagen. Captions gaan ongewijzigd mee.</p>
+    </section>
+  </section>
+
+  <!-- ============ ANALYSE ============ -->
+  <section class="pane" id="pane-perf" role="tabpanel">
+    <div class="v4-hero">
+      <div class="v4-kicker">Performance Intelligence</div>
+      <h1>Wat werkt echt?</h1>
+      <p>Importeer je RepostHQ-export. Alle cijfers komen uit je eigen bestand en blijven in deze browser.</p>
+    </div>
+
+    <section class="step" id="perfImport">
+      <div class="step-head"><span class="step-num">↑</span><div><strong>RepostHQ-import</strong><small>XLSX, XLS of CSV (komma, puntkomma of tab).</small></div></div>
+      <label for="perfFile">Bestand kiezen</label>
+      <input type="file" id="perfFile" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="nativefile">
+      <p id="perfStatus" class="hint" role="status">Nog geen prestatiebestand geïmporteerd. De voorlopige referentiewaarden zijn actief.</p>
+      <div id="perfMapping" class="map-panel" hidden>
+        <strong>Kolommen koppelen</strong>
+        <p class="hint">Controleer de koppeling. Posttekst en views zijn verplicht; de rest is optioneel.</p>
+        <label for="perfSheet">Tabblad</label><select id="perfSheet"></select>
+        <label for="perfHeaderRow">Rij met kolomnamen</label><input id="perfHeaderRow" type="number" min="1" value="1" inputmode="numeric">
+        <div class="map-grid" id="perfMapFields"></div>
+        <div class="actions"><button type="button" class="btn btn-main btn-wide" id="perfConfirmMap">Import bevestigen</button><button type="button" class="btn btn-ghost" id="perfCancelMap">Annuleren</button></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost mini" id="perfRemap" hidden>Koppeling aanpassen</button>
+        <button type="button" class="btn btn-ghost mini" id="perfClear">Wis import</button>
+      </div>
+    </section>
+
+    <div id="dash" hidden>
+      <div class="perf-grid" id="dashKpis"></div>
+      <p class="hint" id="dashNotes"></p>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Advies voor de dagelijkse batch</strong><small>Alleen conclusies met voldoende posts erachter.</small></div></div>
+        <ul class="advice" id="dashAdvice"></ul>
+      </section>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Top 20 posts</strong><small id="topNote">Tik op een rij voor de volledige tekst.</small></div></div>
+        <div class="filterbar" id="topMetric">
+          <button class="filter-chip" data-m="views" aria-pressed="true">Views</button>
+          <button class="filter-chip" data-m="revenue" aria-pressed="false">Inkomsten</button>
+          <button class="filter-chip" data-m="shares" aria-pressed="false">Shares</button>
+          <button class="filter-chip" data-m="rpm" aria-pressed="false">RPM</button>
+          <button class="filter-chip" data-m="engagement" aria-pressed="false">Engagement</button>
+        </div>
+        <div class="table-wrap"><table class="perf-table" id="topTable"></table></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Onderwerpen</strong><small>Index = mediane views van het onderwerp ÷ mediane views van alle posts.</small></div></div>
+        <div class="table-wrap"><table class="perf-table" id="catTable"></table></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Historische periodes</strong><small>Afgeleid uit jaartallen en trefwoorden in de posttekst.</small></div></div>
+        <div class="table-wrap"><table class="perf-table" id="periodTable"></table></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Bereik en opbrengst</strong><small>Elke stip is een post. Horizontaal views (log), verticaal inkomsten.</small></div></div>
+        <div id="scatter" class="scatter"></div>
+        <div class="table-wrap"><table class="perf-table" id="rpmTable"></table></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Formats</strong><small>Posttype (indien in je export) en captionlengte.</small></div></div>
+        <div class="table-wrap"><table class="perf-table" id="formatTable"></table></div>
+      </section>
+
+      <section class="step">
+        <div class="step-head"><div><strong>Hooks</strong><small>De eerste zin van elke post. Welke kenmerken leveren shares op?</small></div></div>
+        <div class="table-wrap"><table class="perf-table" id="hookFeatTable"></table></div>
+        <p class="hint"><strong>Hooks met de meeste shares per 1.000 views</strong> (minimaal mediane views)</p>
+        <div class="table-wrap"><table class="perf-table" id="hookTopTable"></table></div>
+      </section>
+
+      <section class="step" id="timeSection" hidden>
+        <div class="step-head"><div><strong>Dag en tijdstip</strong><small>Mediane views per publicatiedag.</small></div></div>
+        <div class="table-wrap"><table class="perf-table" id="dayTable"></table></div>
+      </section>
+      <button class="btn btn-ghost mini" id="dashExport">Download analyse (CSV per post)</button>
+    </div>
+  </section>
+
+  <!-- ============ EDITOR ============ -->
+  <section class="pane" id="pane-editor" role="tabpanel">
+    <h2>Losse post maken</h2>
+    <p class="lead">Voor één post buiten de batch. Merk en opmaak komen uit Stijl.</p>
+
+    <div class="section-card">
+    <div class="section-title"><strong>Foto</strong></div>
+    <label>Hoofdfoto</label>
+    <div class="pickzone" id="mainZone">
+      <span class="filewrap">
+        <span class="pickbtn" aria-hidden="true">Kies foto</span>
+        <input type="file" id="mainFile" aria-label="Kies hoofdfoto uit je bestanden">
+      </span>
+      <input type="file" id="mainFile2" class="nativefile" aria-label="Alternatieve keuze hoofdfoto">
+      <span class="name" id="mainName">Beide knoppen openen je bestanden, inclusief Downloads. Slepen en plakken werkt ook.</span>
+    </div>
+    <div class="urlrow">
+      <input type="text" id="mainUrl" inputmode="url" placeholder="Plak een afbeeldings-URL">
+      <button type="button" data-url="main">Laden</button>
+    </div>
+
+    <label>Cirkel-inzet (optioneel)</label>
+    <div class="pickzone" id="insetZone">
+      <span class="filewrap">
+        <span class="pickbtn" aria-hidden="true">Kies inzet</span>
+        <input type="file" id="insetFile" aria-label="Kies inzetfoto uit je bestanden">
+      </span>
+      <input type="file" id="insetFile2" class="nativefile" aria-label="Alternatieve keuze inzetfoto">
+      <span class="name" id="insetName">Sleep of plak ook hier</span>
+    </div>
+    <div class="urlrow">
+      <input type="text" id="insetUrl" inputmode="url" placeholder="Plak een afbeeldings-URL">
+      <button type="button" data-url="inset">Laden</button>
+    </div>
+    <p class="hint">Op Wikimedia Commons: tik op de foto zodat je de volledige versie ziet, houd ingedrukt, kies "Afbeeldingsadres kopiëren". Dat adres begint met <code>upload.wikimedia.org</code>.</p>
+
+    <label>Vorm inzet</label>
+    <div class="row" id="insetShape">
+      <button class="chip" data-v="circle" aria-pressed="true">Rond</button>
+      <button class="chip" data-v="square" aria-pressed="false">Afgerond vierkant</button>
+    </div>
+
+    <label>Positie inzet</label>
+    <div class="row" id="insetPos">
+      <button class="chip" data-v="bl" aria-pressed="true">Links onder</button>
+      <button class="chip" data-v="br" aria-pressed="false">Rechts onder</button>
+      <button class="chip" data-v="tr" aria-pressed="false">Rechts boven</button>
+      <button class="chip" data-v="tl" aria-pressed="false">Links boven</button>
+    </div>
+
+    <label for="insetSize">Grootte inzet — <span id="insetSizeVal">36%</span></label>
+    <input type="range" id="insetSize" min="18" max="52" value="36">
+
+    <label for="zoom">Uitsnede hoofdfoto — <span id="zoomVal">100%</span></label>
+    <input type="range" id="zoom" min="100" max="200" value="100">
+    </div>
+
+    <div class="section-card">
+    <div class="section-title"><strong>Tekst</strong></div>
+    <p class="hint">TDA: korte witte kop plus IMAGE STORY. History Teacher ondersteunt gekleurde woorden tussen blokhaken.</p>
+    <label for="preset">Voorbeeld laden</label>
+    <select id="preset"><option value="">— kies een voorbeeld —</option></select>
+
+    <label for="caption">Kop op de afbeelding</label>
+    <textarea id="caption" spellcheck="true"></textarea>
+    <p class="hint">Voorbeeld: <code>[Daniel Inouye] was ongelooflijk taai</code> — de naam krijgt de accentkleur.</p>
+
+    <label for="imageStoryEditor">IMAGE STORY — tekst onder de vlag</label><textarea id="imageStoryEditor" placeholder="40–60 Engelse woorden"></textarea>
+    <label for="watermark">Watermerk (optioneel)</label>
+    <input type="text" id="watermark" placeholder="The Dutch Archaeologist">
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-main btn-wide" id="download">Opslaan als PNG</button>
+      <button class="btn btn-ghost btn-wide" id="reset">Leegmaken</button>
+    </div>
+
+    <details class="advanced-settings">
+      <summary>Engelse Facebook-tekst schrijven (eigen server nodig)</summary>
+      <div class="advanced-body">
+        <p class="hint">Werkt alleen als onder Instellingen een eigen server met <code>/api/text</code> is ingesteld. Zonder server doet deze knop niets behalve een melding geven.</p>
+        <label for="depth">Lengte</label>
+        <select id="depth">
+          <option value="short">Kort — ca. 100 woorden</option>
+          <option value="medium" selected>Middel — ca. 180 woorden</option>
+          <option value="long">Lang — ca. 300 woorden</option>
+        </select>
+        <label for="angle">Invalshoek (optioneel)</label>
+        <input type="text" id="angle" placeholder="bijv. link met de Nederlandse geschiedenis">
+        <div class="actions"><button class="btn btn-main btn-wide" id="genBtn">Genereer tekst</button></div>
+        <p class="status" id="genStatus"></p>
+        <div class="out" id="out">
+          <h3>Facebook-tekst</h3>
+          <p id="outText"></p>
+          <div class="tags" id="outTags"></div>
+          <button class="btn btn-ghost btn-wide" id="copyBtn">Kopieer alles</button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ STIJL ============ -->
+  <section class="pane" id="pane-stijl" role="tabpanel">
+    <h2>Stijl</h2>
+    <p class="lead">Opmaak per merk. Wijzigingen gelden voor de batch én de editor.</p>
+
+    <p id="styleBrand" class="hint"></p><p class="hint">TDA gebruikt het vaste 9:16-sjabloon: 60% foto, klein logo op de naad, witte kop, rechte vlagbalk en IMAGE STORY. Kleur- en indelingsinstellingen hieronder gelden voor History Teacher; zoom en focus werken ook voor TDA.</p>
+    <label for="hookFont">Lettertype hook</label><select id="hookFont"><option value="editorial">Georgia · Editorial</option><option value="modern">Arial · Modern</option><option value="classic">Times · Classic</option><option value="original">Montserrat · Bestaand</option><option value="custom">Eigen font</option></select>
+    <label for="customFont">Eigen fontbestand</label><input id="customFont" type="file" accept=".ttf,.otf,.woff,.woff2" class="nativefile">
+    <div class="half"><div><label for="textColor">Tekstkleur</label><input type="color" id="textColor"></div><div><label for="barColor">Kleur tekstvlak</label><input type="color" id="barColor"></div><div><label for="accentColor">Accentkleur</label><input type="color" id="accentColor"></div></div>
+    <label for="safeMargin">Veilige marge — <span id="safeMarginVal">5%</span></label><input id="safeMargin" type="range" min="3" max="12" value="5">
+    <label for="aiLabel">Reconstructielabel</label><input type="text" id="aiLabel" value="AI reconstruction" maxlength="60">
+    <p class="hint">Deze instellingen worden per merk bewaard. Gewijzigde previews maak je opnieuw met Render alle previews.</p>
+    <label>Formaat</label>
+    <div class="row" id="ratio">
+      <button class="chip" data-v="4:5" aria-pressed="true">4:5 feed</button>
+      <button class="chip" data-v="1:1" aria-pressed="false">1:1 vierkant</button>
+      <button class="chip" data-v="9:16" aria-pressed="false">9:16 story</button>
+    </div>
+
+    <label>Tekststijl</label>
+    <div class="row" id="barMode">
+      <button class="chip" data-v="bar" aria-pressed="true">Zwarte balk</button>
+      <button class="chip" data-v="over" aria-pressed="false">Over de foto</button>
+    </div>
+
+    <label>Accentkleur</label>
+    <div class="swatches" id="accent">
+      <button class="sw" style="background:#E23B32" data-v="#E23B32" aria-pressed="true" title="Rood"></button>
+      <button class="sw" style="background:#F2C14E" data-v="#F2C14E" aria-pressed="false" title="Goud"></button>
+      <button class="sw" style="background:#4FD1C5" data-v="#4FD1C5" aria-pressed="false" title="Turkoois"></button>
+      <button class="sw" style="background:#FF8A3D" data-v="#FF8A3D" aria-pressed="false" title="Oranje"></button>
+      <button class="sw" style="background:#8FD14F" data-v="#8FD14F" aria-pressed="false" title="Groen"></button>
+    </div>
+
+    <label>Logo</label>
+    <div class="row" id="logo">
+      <button class="chip" data-v="none" aria-pressed="true">Geen</button>
+      <button class="chip" data-v="dutch" aria-pressed="false">Dutch Archaeologist</button>
+      <button class="chip" data-v="teacher" aria-pressed="false">History Teacher</button>
+      <button class="chip" data-v="own" aria-pressed="false">Eigen logo</button>
+    </div>
+    <input type="file" id="logoFile" class="nativefile" aria-label="Kies je eigen logo">
+
+    <label>Plek van het logo</label>
+    <div class="row" id="logoPos">
+      <button class="chip" data-v="tl" aria-pressed="true">Boven links</button>
+      <button class="chip" data-v="tc" aria-pressed="false">Boven midden</button>
+      <button class="chip" data-v="tr" aria-pressed="false">Boven rechts</button>
+      <button class="chip" data-v="bl" aria-pressed="false">Onder links</button>
+      <button class="chip" data-v="bc" aria-pressed="false">Onder midden</button>
+      <button class="chip" data-v="br" aria-pressed="false">Onder rechts</button>
+      <button class="chip" data-v="seam" aria-pressed="false">Op de naad</button>
+    </div>
+
+    <label for="logoSize">Logogrootte — <span id="logoSizeVal">13%</span></label>
+    <input type="range" id="logoSize" min="7" max="24" value="13">
+
+    <label>Foto in beeld</label>
+    <div class="row" id="fit">
+      <button class="chip" data-v="cover" aria-pressed="true">Vullen — bijgesneden</button>
+      <button class="chip" data-v="contain" aria-pressed="false">Volledig — niets weg</button>
+    </div>
+    <p class="hint">Bij <strong>Volledig</strong> zie je de hele bronafbeelding, met zwarte randen als de verhouding niet klopt. Bij <strong>Vullen</strong> wordt er bijgesneden.</p>
+
+    <label>Beeldfocus — waar wordt op gesneden</label>
+    <div class="row" id="focus">
+      <button class="chip" data-v="auto" aria-pressed="true">Automatisch</button>
+      <button class="chip" data-v="top" aria-pressed="false">Boven</button>
+      <button class="chip" data-v="center" aria-pressed="false">Midden</button>
+      <button class="chip" data-v="bottom" aria-pressed="false">Onder</button>
+    </div>
+    <p class="hint"><strong>Automatisch</strong> zoekt gezichten en houdt die in beeld. Lukt dat niet, dan snijdt hij bij een staande foto hoger. Valt er toch een hoofd af, kies <strong>Boven</strong>.</p>
+
+    <label for="fontSize">Tekstgrootte — <span id="fontSizeVal">46</span></label>
+    <input type="range" id="fontSize" min="28" max="70" value="46">
+  </section>
+
+  <!-- ============ INSTELLINGEN ============ -->
+  <section class="pane" id="pane-instellingen" role="tabpanel">
+    <h2>Instellingen</h2>
+    <p class="lead">Koppelingen en reservekopieën. Je hoeft hier dagelijks niet te komen.</p>
+
+    <div class="section-card">
+      <div class="section-title"><strong>Beeldexport</strong></div>
+      <label>Bestandsformaat van de kaarten</label>
+      <div class="row" id="exportFormat">
+        <button class="chip" data-v="png" aria-pressed="true">PNG — beste kwaliteit</button>
+        <button class="chip" data-v="jpeg" aria-pressed="false">JPEG — kleiner bestand</button>
+      </div>
+      <p class="hint">Geldt voor previews, ZIP-download en Cloudinary-upload. Na wisselen opnieuw renderen.</p>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><strong>Cloudinary</strong></div>
+      <div class="half">
+        <div><input type="text" id="cldCloud" placeholder="cloud name" autocomplete="off" spellcheck="false"></div>
+        <div><input type="text" id="cldPreset" placeholder="unsigned upload preset" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <p class="hint">Cloudinary host de eindbeelden voor de Metricool-CSV.</p>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><strong>Bronbeelden laden</strong></div>
+      <label><input type="checkbox" id="publicProxy"> Gebruik ook publieke image proxy (wsrv.nl)</label>
+      <label for="proxyUrl">Reserveproxy voor bronbeelden</label>
+      <input type="text" id="proxyUrl" placeholder="https://wsrv.nl/?url={url}" autocomplete="off" spellcheck="false">
+      <p class="hint"><code>{url}</code> wordt vervangen door de bron-URL.</p>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><strong>Metricool-CSV</strong></div>
+      <input type="text" id="csvHead" placeholder="Date,Time,Timezone,Network,Text,Media URL,Brand" autocomplete="off" spellcheck="false">
+      <div class="half">
+        <div><input type="text" id="csvNet" placeholder="facebook" autocomplete="off" spellcheck="false"></div>
+        <div><input type="text" id="csvTz" placeholder="Europe/Amsterdam" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <label><input type="checkbox" id="csvReserves"> Reserves ook in de CSV opnemen</label>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><strong>Eigen generatieserver (optioneel)</strong></div>
+      <p class="hint">Deze app heeft geen ingebouwde AI. Hier hoort het adres van je eigen backend met <code>POST /api/image</code> en <code>/api/text</code>; geen ChatGPT- of Higgsfield-websiteadres en geen API-sleutel. Zie docs/AI-BEELDGENERATIE.md.</p>
+      <label for="aiBackend">Serveradres</label>
+      <input type="text" id="aiBackend" placeholder="https://jouw-beveiligde-app.example" inputmode="url">
+      <label for="backendLogin">Toegangscode</label><input type="password" id="backendLogin" autocomplete="off">
+      <button class="btn btn-ghost" id="loginBackend">Verbind veilig</button>
+      <p class="status" id="backendStatus"></p>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title"><strong>Reservekopie</strong></div>
+      <p class="hint">Download je actieve batch inclusief lokale beelden, stijlen en onderwerphistorie. Browseropslag is alleen een gemak.</p>
+      <button class="btn btn-ghost" id="backupProject">Download JSON</button>
+      <label for="restoreProject">Reservekopie terugzetten</label><input id="restoreProject" type="file" accept=".json,application/json" class="nativefile">
+    </div>
+  </section>
+</div>
+
+<div class="mobile-actionbar" id="mobileActionbar">
+  <button class="btn btn-main" id="mobileBuild">Previews</button>
+  <button class="btn btn-ghost" id="mobileRetry">Fouten</button>
+  <button class="btn btn-ghost" id="mobileExport">CSV</button>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="sheet" id="sheet">
+  <p>Houd de afbeelding ingedrukt en kies <strong>Afbeelding opslaan</strong>.</p>
+  <img id="saveImg" alt="De post, klaar om op te slaan">
+  <button class="btn btn-ghost" id="closeSheet">Sluiten</button>
+</div>
+
+<script>
+const PRESETS = [
+  {name:"Juan Pujol García — spion Garbo",
+   text:"Juan, een Spanjaard die walgde van het fascisme, bood zich aan als spion tegen Duitsland. Zowel Londen als Washington [wees hem af]. Dus begon hij op eigen houtje: hij deed zich voor als pro-nazi-ambtenaar en voedde Berlijn vanuit Lissabon met complete verzinsels. Pas daarna nam Groot-Brittannië hem alsnog aan. Zijn [volledig verzonnen spionnennetwerk] misleidde de nazi's rond D-Day."},
+  {name:"Daniel Inouye — granaat",
+   text:"[Daniel Inouye] was zo [ongelooflijk taai] dat hij, nadat een granaatinslag zijn rechterarm had verbrijzeld, de scherpe granaat uit zijn verwoeste hand wrikte, er een bunker mee uitschakelde en de aanval afmaakte met een Thompson in één hand."},
+  {name:"Violet Bonham Carter — Zwarte Boek",
+   text:"De grootmoeder van actrice Helena Bonham Carter sprak zich zó fel uit tegen Hitler dat ze [op zijn arrestatielijst] belandde: het beruchte Zwarte Boek met namen die na een geslaagde invasie van Groot-Brittannië opgepakt moesten worden."},
+  {name:"Kasteeltoiletten",
+   text:"Middeleeuwse kasteeltoiletten waren niet meer dan verticale schachten in de buitenmuur. De uitwerpselen vielen recht naar beneden — geen leidingen, geen privacy, en [iemand moest de wanden schoonschrapen]."},
+  {name:"Peter Bergmann — mysterie Sligo",
+   text:"Op 12 juni 2009 checkte een man in bij een hotel in Ierland onder de naam \"Peter Bergmann\", naar eigen zeggen uit Oostenrijk. In drie dagen verliet hij het hotel dertien keer en dumpte hij stilletjes zijn bezittingen door de stad. Op 16 juni werd hij dood gevonden op het strand — en later bleek dat [Peter Bergmann nooit bestaan had]."},
+  {name:"Wolfhond Yuki",
+   text:"Deze wolfhond werd door zijn baasje bij een asiel gedumpt toen hij te groot en te lastig werd. [Een opvangcentrum greep in en redde zijn leven.] Uit zijn DNA bleek: 87,5% grijze wolf, 8,6% Siberische husky en 3,9% Duitse herder."}
+];
+
+/* TDA-logo: wordt bij het bouwen ingevoegd uit src/tda-logo.png (512 px, ruim voldoende voor de 120 px op de kaart). */
+const TDA_LOGO="__TDA_LOGO__";
+const TEACHER_LOGO='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><circle cx="80" cy="80" r="76" fill="#17263F" stroke="#F3C84B" stroke-width="5"/><path d="M40 45h35l5 8 5-8h35v60H85l-5 8-5-8H40z" fill="none" stroke="#F3C84B" stroke-width="5"/><text x="80" y="138" text-anchor="middle" font-family="Arial" font-size="13" fill="white">HISTORY TEACHER</text></svg>');
+const LOGOS={dutch:TDA_LOGO,teacher:TEACHER_LOGO};
+const LOGO_IMGS={};
+['dutch','teacher'].forEach(k=>{
+  const i=new Image();i.onload=()=>render();i.src=LOGOS[k];LOGO_IMGS[k]=i;
+});
+
+const S={main:null,inset:null,insetPos:'bl',insetSize:36,zoom:100,
+  caption:'',accent:'#E23B32',fontSize:46,watermark:'',ratio:'4:5',barMode:'bar',
+  logo:'none',logoSize:13,logoOwn:null,logoPos:'tl',fit:'cover',focus:'auto',insetShape:'circle'};
+const DIMS={'4:5':[1080,1350],'1:1':[1080,1080],'9:16':[1080,1920]};
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+
+/* ---------- tekst opmaken ---------- */
+function segments(str){
+  const out=[],re=/\[([^\]]*)\]/g;let last=0,m;
+  while((m=re.exec(str))!==null){
+    if(m.index>last) out.push({t:str.slice(last,m.index),hl:false});
+    out.push({t:m[1],hl:true});last=re.lastIndex;
+  }
+  if(last<str.length) out.push({t:str.slice(last),hl:false});
+  return out;
+}
+function buildLines(str,maxW){
+  const words=[];
+  for(const seg of segments(str)){
+    for(const part of seg.t.split(/(\s+)/)){
+      if(part==='')continue;
+      if(/^\s+$/.test(part)) words.push({t:' ',hl:seg.hl,sp:true});
+      else{let rest=part;while(ctx.measureText(rest).width>maxW&&rest.length>1){let n=rest.length-1;while(n>1&&ctx.measureText(rest.slice(0,n)).width>maxW)n--;words.push({t:rest.slice(0,n),hl:seg.hl,sp:false});rest=rest.slice(n);}words.push({t:rest,hl:seg.hl,sp:false});}
+    }
+  }
+  const lines=[];let line=[],w=0;
+  for(const word of words){
+    const ww=ctx.measureText(word.t).width;
+    if(word.sp&&line.length===0)continue;
+    if(!word.sp&&w+ww>maxW&&line.length){
+      while(line.length&&line[line.length-1].sp)line.pop();
+      lines.push(line);line=[];w=0;
+    }
+    line.push(word);w+=ww;
+  }
+  while(line.length&&line[line.length-1].sp)line.pop();
+  if(line.length)lines.push(line);
+  return lines;
+}
+/* ---------- Beeldfocus ----------
+   Een liggend beeld in een staand kader (of andersom) wordt bijgesneden.
+   Precies in het midden snijden kost bij portretten vaak de bovenkant van
+   het hoofd. We bepalen daarom een focuspunt en snijden daaromheen.
+
+   1. Kan de browser gezichten herkennen, dan mikken we op het gemiddelde
+      middelpunt van de gevonden gezichten.
+   2. Zo niet, dan gokken we op basis van de verhouding: bij een staand beeld
+      staat het onderwerp vrijwel altijd in de bovenste helft.
+   Handmatig overrulen kan altijd via de knoppen "Beeldfocus". */
+
+const FOCUS_TRIED = new WeakSet();
+
+function heuristicFocusY(img){
+  const ar = img.width / img.height;
+  if(ar >= 1.05) return 0.50;   // liggend — midden is prima
+  if(ar >= 0.85) return 0.40;   // bijna vierkant — iets omhoog
+  return 0.32;                  // uitgesproken portret — flink omhoog
+}
+
+function focusPoint(img){
+  if(S.focus === 'top')    return {x:0.5, y:0.14};
+  if(S.focus === 'center') return {x:0.5, y:0.50};
+  if(S.focus === 'bottom') return {x:0.5, y:0.86};
+  if(typeof img.__focusY === 'number')
+    return {x: img.__focusX, y: img.__focusY};
+  return {x:0.5, y: heuristicFocusY(img)};
+}
+
+/* Zoekt gezichten en onthoudt het resultaat op de afbeelding zelf, zodat
+   render() er synchroon bij kan. Faalt dit, dan blijft de gok gelden. */
+async function prepareFocus(img){
+  if(!img || FOCUS_TRIED.has(img)) return;
+  FOCUS_TRIED.add(img);
+  if(!('FaceDetector' in window)) return;
+  try{
+    const faces = await new window.FaceDetector({fastMode:true, maxDetectedFaces:10}).detect(img);
+    if(!faces || !faces.length) return;
+    let sx=0, sy=0;
+    for(const f of faces){
+      const b = f.boundingBox;
+      sx += b.x + b.width/2;
+      sy += b.y + b.height/2;
+    }
+    img.__focusX = Math.min(0.9, Math.max(0.1, (sx/faces.length)/img.width));
+    /* Iets bóven het gezichtsmiddelpunt mikken laat wat lucht boven het hoofd. */
+    img.__focusY = Math.min(0.9, Math.max(0.1, (sy/faces.length)/img.height - 0.05));
+  }catch(e){ /* detectie niet beschikbaar of mislukt — gok blijft staan */ }
+}
+
+function drawCover(img,x,y,w,h,zoom){
+  const s=Math.max(w/img.width,h/img.height)*(zoom/100);
+  const dw=img.width*s,dh=img.height*s;
+  const p=focusPoint(img);
+  /* Plaats het focuspunt in het midden van het kader en schuif daarna terug
+     zodra er een rand zou ontstaan, zodat er nooit een gat valt. */
+  let dx = dw<=w ? x+(w-dw)/2 : Math.min(x, Math.max(x+w-dw, x+w/2-p.x*dw));
+  let dy = dh<=h ? y+(h-dh)/2 : Math.min(y, Math.max(y+h-dh, y+h/2-p.y*dh));
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.drawImage(img,dx,dy,dw,dh);ctx.restore();
+}
+function drawContain(img,x,y,w,h,zoom){
+  const s=Math.min(w/img.width,h/img.height)*(zoom/100);
+  const dw=img.width*s,dh=img.height*s;
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.fillStyle='#000';ctx.fillRect(x,y,w,h);
+  ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);ctx.restore();
+}
+/* Tekent het pad van het inzetbeeld: rond of afgerond vierkant. */
+function insetPath(cx,cy,r){
+  ctx.beginPath();
+  if(S.insetShape==='square'){
+    const rad=r*0.28, x=cx-r, y=cy-r, d=r*2;
+    if(ctx.roundRect){ctx.roundRect(x,y,d,d,rad);return;}
+    ctx.moveTo(x+rad,y);
+    ctx.arcTo(x+d,y,x+d,y+d,rad);ctx.arcTo(x+d,y+d,x,y+d,rad);
+    ctx.arcTo(x,y+d,x,y,rad);   ctx.arcTo(x,y,x+d,y,rad);
+    ctx.closePath();return;
+  }
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+}
+function drawCircle(img,cx,cy,r){
+  ctx.save();insetPath(cx,cy,r);ctx.clip();
+  const s=Math.max((r*2)/img.width,(r*2)/img.height);
+  const dw=img.width*s,dh=img.height*s,p=focusPoint(img);
+  /* De ronde uitsnede is klein, dus juist hier hakt een verkeerd middelpunt
+     er het hardst in. Zelfde focuslogica als bij het hoofdbeeld. */
+  const dx=Math.min(cx-r, Math.max(cx+r-dw, cx-p.x*dw));
+  const dy=Math.min(cy-r, Math.max(cy+r-dh, cy-p.y*dh));
+  ctx.drawImage(img,dx,dy,dw,dh);
+  ctx.restore();
+  ctx.save();insetPath(cx,cy,r);
+  ctx.lineWidth=Math.max(5,r*.045);ctx.strokeStyle='#fff';ctx.stroke();ctx.restore();
+}
+
+/* alleen het logo zelf, geen achtergrond en geen rand eromheen */
+function drawLogo(img,cx,cy,r){
+  const s=Math.min((r*2)/img.width,(r*2)/img.height);
+  ctx.drawImage(img,cx-img.width*s/2,cy-img.height*s/2,img.width*s,img.height*s);
+}
+function currentLogo(){
+  if(S.logo==='own')return S.logoOwn;
+  if(S.logo==='dutch'||S.logo==='teacher'){
+    const i=LOGO_IMGS[S.logo];
+    return (i&&i.complete&&i.naturalWidth)?i:null;
+  }
+  return null;
+}
+
+// Fixed TDA template; the teacher renderer below remains independent.
+function tdaLines(text,size,width){
+ ctx.font='700 '+size+'px Arial, sans-serif';const lines=[];let line='';
+ for(const word of String(text||'').replace(/[\[\]]/g,'').trim().split(/\s+/)){
+   if(!word)continue;const next=line?line+' '+word:word;
+   if(line&&ctx.measureText(next).width>width){lines.push(line);line=word;}else line=next;
+ }if(line)lines.push(line);return lines;
+}
+function renderTdaV5(){
+ const W=1080,H=1920,seam=1152;cv.width=W;cv.height=H;
+ ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);S.textOverflow=false;
+ if(S.main)drawCover(S.main,0,0,W,seam,Math.max(100,S.zoom||100));
+ else{ctx.fillStyle='#262626';ctx.fillRect(0,0,W,seam);ctx.fillStyle='#ddd';ctx.font='32px Arial';ctx.textAlign='center';ctx.fillText('Kies een hoofdfoto',W/2,seam/2);}
+ if(S.isAi){ctx.font='22px Arial';const label='Illustrated reconstruction';const tw=ctx.measureText(label).width;ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(24,seam-52,tw+24,32);ctx.fillStyle='#fff';ctx.textAlign='left';ctx.fillText(label,36,seam-29);}
+ const logo=currentLogo()||LOGO_IMGS.dutch;if(logo?.complete&&logo.naturalWidth)drawLogo(logo,W/2,seam,60);
+ let size=60,lines;
+ do{lines=tdaLines(S.caption,size,960);if(lines.length<=2&&lines.every(l=>ctx.measureText(l).width<=960))break;size-=2;}while(size>=38);
+ if(lines.length>2||lines.some(l=>ctx.measureText(l).width>960))S.textOverflow=true;
+ ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='top';
+ lines.forEach((l,i)=>ctx.fillText(l,W/2,1240+i*size*1.15));
+ const flagY=1405,flagH=54;
+ ['#a82a2a','#e5dfd2','#194776'].forEach((c,i)=>{ctx.fillStyle=c;ctx.fillRect(0,flagY+i*18,W,18);});
+ // Subtle deterministic texture, with perfectly straight stripe boundaries.
+ let seed=271;for(let i=0;i<2100;i++){seed=(seed*1664525+1013904223)>>>0;const x=seed%W;seed=(seed*1664525+1013904223)>>>0;const y=flagY+seed%flagH;ctx.fillStyle=i%2?'rgba(0,0,0,.13)':'rgba(255,255,255,.10)';ctx.fillRect(x,y,1+seed%4,1);}
+ const bodyY=flagY+flagH+48,space=H-55-bodyY;
+ let bodySize=42,body;
+ do{body=tdaLines(S.imageStory,bodySize,960);if(body.length*bodySize*1.22<=space&&body.every(l=>ctx.measureText(l).width<=960))break;bodySize-=1;}while(bodySize>=30);
+ if(body.length*bodySize*1.22>space||body.some(l=>ctx.measureText(l).width>960))S.textOverflow=true;
+ ctx.fillStyle='#fff';ctx.textAlign='center';body.forEach((l,i)=>ctx.fillText(l,W/2,bodyY+i*bodySize*1.22));ctx.textBaseline='alphabetic';
+ document.getElementById('note').textContent='1080 × 1920 · TDA · 60% foto / 40% tekst'+(S.textOverflow?' · Tekst te lang: verkort vóór export':'');
+}
+
+function render(){
+  if(S.template==='tda-v5')return renderTdaV5();
+  const [W,H]=DIMS[S.ratio];
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+
+  const pad=Math.round(W*(S.safeMargin||5)/100), maxW=W-pad*2;
+  const fam='800 %spx '+fontFor(S);
+  let fs=S.fontSize*(W/1080), lines=[];
+  if(S.caption.trim()){
+    for(;;){
+      ctx.font=fam.replace('%s',fs);
+      lines=buildLines(S.caption.trim(),maxW);
+      if(lines.length*fs*1.22+pad*1.6<=H*.5||fs<=22)break;
+      fs-=2;
+    }
+  }
+  ctx.font=fam.replace('%s',fs);
+  const lineH=fs*1.22;
+  const barH=lines.length?Math.min(H*.5,lines.length*lineH+pad*1.6):0;
+  if(lines.length*lineH+pad*1.6>H*.5){const count=Math.max(1,Math.floor((H*.5-pad*1.6)/lineH));lines=lines.slice(0,count);lines[count-1]=[{t:'…',hl:false}];S.textOverflow=true;}else S.textOverflow=false;
+  const overlay=S.barMode==='over';
+  const imgH=overlay?H:H-barH;
+
+  if(S.main)(S.fit==='contain'?drawContain:drawCover)(S.main,0,0,W,imgH,S.zoom);
+  else{
+    ctx.fillStyle='#101A26';ctx.fillRect(0,0,W,imgH);
+    ctx.fillStyle='rgba(220,217,206,.4)';ctx.textAlign='center';
+    ctx.font=`500 ${Math.round(W*.028)}px "IBM Plex Mono", monospace`;
+    ctx.fillText('Nog geen foto',W/2,imgH/2);
+  }
+  if(S.inset&&S.main){
+    const r=Math.min(W*(S.insetSize/100),Math.max(40,imgH-pad*2.4))/2, m=pad+r*.15;
+    const cx=(S.insetPos==='bl'||S.insetPos==='tl')?m+r:W-m-r;
+    const cy=(S.insetPos==='tl'||S.insetPos==='tr')?m+r:imgH-m-r;
+    drawCircle(S.inset,cx,cy,r);
+  }
+  if(lines.length){
+    if(overlay){
+      const g=ctx.createLinearGradient(0,H-barH-pad*2.4,0,H);
+      g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.45,'rgba(0,0,0,.72)');g.addColorStop(1,'rgba(0,0,0,.92)');
+      ctx.fillStyle=g;ctx.fillRect(0,H-barH-pad*2.4,W,barH+pad*2.4);
+    }else{ctx.fillStyle=S.barColor||'#102B2D';ctx.fillRect(0,H-barH,W,barH);}
+    ctx.font=fam.replace('%s',fs);ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    let y=H-barH+pad*.8+fs;
+    for(const line of lines){
+      let total=0;for(const w of line)total+=ctx.measureText(w.t).width;
+      let x=(W-total)/2;
+      for(const w of line){
+        ctx.fillStyle=w.hl?S.accent:(S.textColor||'#FFFFFF');
+        if(overlay){ctx.shadowColor='rgba(0,0,0,.85)';ctx.shadowBlur=10;}
+        ctx.fillText(w.t,x,y);ctx.shadowBlur=0;
+        x+=ctx.measureText(w.t).width;
+      }
+      y+=lineH;
+    }
+  }
+  const lg=currentLogo();
+  if(lg){
+    const r=(W*(S.logoSize/100))/2, m=pad+r*.15, p=S.logoPos||'tl';
+    let cx,cy;
+    if(p==='seam'){
+      cx=W/2;
+      cy=overlay?Math.max(r+m,H-barH-pad*2.4-r*.2):imgH;
+    }else{
+      cx=p[1]==='l'?m+r:(p[1]==='r'?W-m-r:W/2);
+      cy=p[0]==='t'?m+r
+        :(overlay?Math.max(r+m,H-barH-pad*2.4-r-m*.4):imgH-m-r);
+    }
+    drawLogo(lg,cx,cy,r);
+  }
+
+  if(S.watermark.trim()){
+    ctx.font=`500 ${Math.round(W*.019)}px "IBM Plex Mono", monospace`;
+    ctx.textAlign='left';ctx.fillStyle='rgba(255,255,255,.45)';
+    ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;
+    ctx.fillText(S.watermark.trim(),pad*.7,pad*1.1);ctx.shadowBlur=0;
+  }
+  if(S.isAi&&S.aiLabel?.trim()){
+    ctx.save();const label=S.aiLabel.trim();let labelSize=24;ctx.font='600 '+labelSize+'px Arial';while(ctx.measureText(label).width>W-pad*2-24&&labelSize>12){labelSize--;ctx.font='600 '+labelSize+'px Arial';}const lw=ctx.measureText(label).width;
+    const labelY=Math.max(pad,(overlay?H-barH:imgH)-pad-42);
+    ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(W-pad-lw-24,labelY,lw+24,42);
+    ctx.fillStyle='#fff';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(label,W-pad-12,labelY+21);ctx.restore();
+  }
+  document.getElementById('note').textContent =
+    S.main?`${W} × ${H} px — klaar om op te slaan`:'Kies een foto om te beginnen.';
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===t?'true':'false'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('is-on',p.id==='pane-'+t.dataset.pane));
+    const pane=t.dataset.pane;
+    document.body.classList.toggle('bulk-mode',['bulk','perf','instellingen'].includes(pane));
+    document.body.classList.toggle('today-mode',pane==='bulk');
+    if(pane==='perf'&&window.HCE_PERF)window.HCE_PERF.renderDashboard();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+
+/* ---------- foto's laden ---------- */
+const NAMES={main:document.getElementById('mainName'),inset:document.getElementById('insetName')};
+function setImage(src,slot,label){
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{S[slot]=img;NAMES[slot].textContent=label;render();
+    prepareFocus(img).then(render);};
+  img.onerror=()=>{NAMES[slot].textContent='Laden mislukt — probeer een ander bestand of adres';};
+  img.src=src;
+}
+function looksLikeImage(file){
+  if(file.type&&file.type.startsWith('image/'))return true;
+  return /\.(jpe?g|png|gif|webp|bmp|avif|heic|heif)$/i.test(file.name||'');
+}
+function loadFile(file,slot){
+  if(!file)return;
+  if(!looksLikeImage(file)){
+    NAMES[slot].textContent='Dat is geen afbeelding — kies een jpg, png of webp';
+    return;
+  }
+  const fr=new FileReader();
+  fr.onload=()=>setImage(fr.result,slot,file.name||'Foto geladen');
+  fr.onerror=()=>{NAMES[slot].textContent='Bestand kon niet gelezen worden';};
+  fr.readAsDataURL(file);
+}
+/* elke slot heeft twee bestandsvelden: de knop-overlay en de gewone knop */
+[['mainFile','main'],['mainFile2','main'],['insetFile','inset'],['insetFile2','inset']].forEach(([id,slot])=>{
+  document.getElementById(id).addEventListener('change',e=>loadFile(e.target.files[0],slot));
+});
+
+[['mainZone','main'],['insetZone','inset']].forEach(([id,slot])=>{
+  const z=document.getElementById(id);
+  ['dragenter','dragover'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('is-over');}));
+  ['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('is-over');}));
+  z.addEventListener('drop',e=>{
+    const f=e.dataTransfer.files[0];
+    if(f)loadFile(f,slot);
+    else{const u=e.dataTransfer.getData('text/uri-list')||e.dataTransfer.getData('text');if(u)setImage(u,slot,'Van link geladen');}
+  });
+});
+document.addEventListener('paste',e=>{
+  const items=(e.clipboardData||{}).items||[];
+  for(const it of items){
+    if(it.type&&it.type.startsWith('image/')){loadFile(it.getAsFile(),'main');e.preventDefault();return;}
+  }
+});
+document.querySelectorAll('[data-url]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const slot=b.dataset.url;
+    const v=document.getElementById(slot+'Url').value.trim();
+    if(!v){NAMES[slot].textContent='Plak eerst een adres in het veld';return;}
+    NAMES[slot].textContent='Bezig met laden…';
+    setImage(v,slot,'Van link geladen');
+  });
+});
+
+/* ---------- knoppen en schuiven ---------- */
+function group(id,key){
+  const box=document.getElementById(id);
+  box.addEventListener('click',e=>{
+    const b=e.target.closest('[data-v]');if(!b)return;
+    box.querySelectorAll('[data-v]').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
+    S[key]=b.dataset.v;styleChanged();render();
+  });
+}
+['insetPos','ratio','barMode','accent','logo','logoPos','fit','focus','insetShape'].forEach(id=>group(id,id));
+function slider(id,key,lab,sfx){
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{S[key]=+el.value;document.getElementById(lab).textContent=el.value+(sfx||'');styleChanged();render();});
+}
+slider('insetSize','insetSize','insetSizeVal','%');
+slider('zoom','zoom','zoomVal','%');
+slider('fontSize','fontSize','fontSizeVal','');
+slider('logoSize','logoSize','logoSizeVal','%');
+
+document.getElementById('logoFile').addEventListener('change',e=>{
+  const f=e.target.files[0];
+  if(!f||!looksLikeImage(f))return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const small=document.createElement('canvas');small.width=256;small.height=Math.max(1,Math.round(256*img.height/img.width));if(small.height>256){small.height=256;small.width=Math.max(1,Math.round(256*img.width/img.height));}small.getContext('2d').drawImage(img,0,0,small.width,small.height);
+      let logoData=small.toDataURL('image/png');while(logoData.length>64000&&small.width>64&&small.height>64){const width=Math.round(small.width*.75),height=Math.round(small.height*.75);small.width=width;small.height=height;small.getContext('2d').drawImage(img,0,0,width,height);logoData=small.toDataURL('image/png');}
+      const reduced=new Image();reduced.onload=()=>{S.logoOwn=reduced;ownLogos[BRAND]=reduced;S.logoOwnData=logoData;S.logo='own';styleChanged();render();};reduced.src=logoData;
+      document.querySelectorAll('#logo [data-v]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='own'?'true':'false'));
+      render();
+    };
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(f);
+});
+
+const capEl=document.getElementById('caption');
+capEl.addEventListener('input',()=>{S.caption=capEl.value;render();});
+const wmEl=document.getElementById('watermark');
+wmEl.addEventListener('input',()=>{S.watermark=wmEl.value;styleChanged();render();});
+const presetEl=document.getElementById('preset');
+PRESETS.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;presetEl.appendChild(o);});
+presetEl.addEventListener('change',()=>{
+  if(presetEl.value==='')return;
+  capEl.value=PRESETS[+presetEl.value].text;S.caption=capEl.value;render();
+});
+
+/* ---------- opslaan ---------- */
+const sheet=document.getElementById('sheet');
+document.getElementById('download').addEventListener('click',()=>{
+  let url;
+  try{url=cv.toDataURL('image/png');}
+  catch(err){
+    document.getElementById('note').textContent='Deze foto blokkeert opslaan. Download hem eerst en kies hem als bestand.';
+    return;
+  }
+  document.getElementById('saveImg').src=url;
+  sheet.classList.add('is-on');
+  try{
+    const a=document.createElement('a');a.href=url;a.download='geschiedenis-post.png';
+    document.body.appendChild(a);a.click();a.remove();
+  }catch(e){}
+});
+document.getElementById('closeSheet').addEventListener('click',()=>sheet.classList.remove('is-on'));
+
+document.getElementById('reset').addEventListener('click',()=>{
+  S.main=null;S.inset=null;S.caption='';S.imageStory='';bq('imageStoryEditor').value='';S.logo='none';S.logoOwn=null;
+  document.querySelectorAll('#logo [data-v]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='none'?'true':'false'));
+  document.getElementById('logoFile').value='';
+  capEl.value='';presetEl.value='';
+  ['mainFile','mainFile2','insetFile','insetFile2','mainUrl','insetUrl']
+    .forEach(i=>document.getElementById(i).value='');
+  NAMES.main.textContent='Beide knoppen openen je bestanden, inclusief Downloads. Slepen en plakken werkt ook.';
+  NAMES.inset.textContent='Sleep of plak ook hier';
+  sheet.classList.remove('is-on');
+  render();
+});
+
+/* ---------- Engelse tekst ---------- */
+const genBtn=document.getElementById('genBtn'), genStatus=document.getElementById('genStatus');
+const outBox=document.getElementById('out'), outText=document.getElementById('outText'), outTags=document.getElementById('outTags');
+const WORDS={short:'about 90-110 words',medium:'about 160-200 words',long:'about 280-320 words'};
+function setStatus(m,err){genStatus.textContent=m||'';genStatus.classList.toggle('err',!!err);}
+
+genBtn.addEventListener('click',async()=>{
+  const topic=S.caption.replace(/[\[\]]/g,'').trim();
+  if(!topic){setStatus('Vul eerst een onderschrift in bij het tabblad Tekst.',true);return;}
+  const angle=document.getElementById('angle').value.trim();
+  const len=WORDS[document.getElementById('depth').value];
+  genBtn.disabled=true;setStatus('Bezig met schrijven…');outBox.classList.remove('is-on');
+
+  const prompt=
+`You are writing the caption that sits under a history post on Facebook. The image caption reads:
+
+"""${topic}"""
+
+Write an English Facebook caption of ${len} that goes deeper than the image text: the background, how it actually happened, why it mattered, and one detail most people do not know.
+
+Rules:
+- Open with a hook of one short line. No greeting, no "Did you know".
+- Stay historically accurate. If a popular version of the story is exaggerated or disputed, say so plainly instead of repeating it.
+- Do not invent quotes, dates, or numbers. If unsure of a figure, leave it out.
+- Plain, vivid prose. Short paragraphs separated by a blank line. No bullet points, no emoji.
+- End with one open question that invites comments.
+- Then 5 English hashtags: a mix of broad reach and specific topic tags.
+${angle?`- Additional angle to work in: ${angle}`:''}
+
+Respond with raw JSON only, no markdown fences and no preamble:
+{"caption":"<text, with \\n\\n between paragraphs>","hashtags":["#Tag1","#Tag2","#Tag3","#Tag4","#Tag5"]}`;
+
+  try{
+    const res=await backendRequest('/api/text',{prompt});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const raw=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const clean=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+    let parsed;
+    try{parsed=JSON.parse(clean);}
+    catch{parsed=JSON.parse(clean.slice(clean.indexOf('{'),clean.lastIndexOf('}')+1));}
+    outText.textContent=(parsed.caption||'').trim();
+    outTags.textContent=(parsed.hashtags||[]).join('  ');
+    outBox.classList.add('is-on');
+    setStatus('Klaar. Controleer de feiten voor je publiceert.');
+  }catch(err){
+    setStatus('Genereren mislukt: '+err.message,true);
+  }finally{genBtn.disabled=false;}
+});
+
+document.getElementById('copyBtn').addEventListener('click',async()=>{
+  try{
+    await navigator.clipboard.writeText(outText.textContent+'\n\n'+outTags.textContent);
+    setStatus('Gekopieerd naar klembord.');
+  }catch{setStatus('Kopiëren lukte niet — selecteer de tekst handmatig.',true);}
+});
+
+try{localStorage.removeItem('pm_key');}catch(e){}
+
+/* ================================================================
+   Bulk — plakken, verwerken, exporteren.
+
+   ANDROID / content:// — de app draait vaak vanaf een content:// URL.
+   De origin is dan "null" en window.location.origin is onbruikbaar.
+   Externe servers die Access-Control-Allow-Origin: * sturen (Wikimedia,
+   Cloudinary) werken dan gewoon. Servers die een specifieke origin
+   verwachten of helemaal geen CORS-header sturen (veel museum- en
+   overheidsarchieven) blokkeren een null-origin altijd. Daarom loopt elk
+   beeld via loadExternalImage(), die na een directe poging automatisch
+   uitwijkt naar een proxy. Op een echte HTTPS-host (Cloudflare Pages,
+   Netlify, GitHub Pages) slaagt de directe poging vaker en kun je bij
+   PROXY een eigen endpoint zetten in plaats van een publieke dienst.
+   Alle URL's zijn relatief of absoluut-extern, dus hosten kan zonder
+   wijziging.
+   ================================================================ */
+
+const bq=id=>document.getElementById(id);
+
+const BRANDS={
+  dutch  :{name:'The Dutch Archaeologist', logo:'dutch',   startHour:8, stepHours:1},
+  teacher:{name:'History Teacher',         logo:'teacher', startHour:0, stepHours:2}
+};
+let BRAND='dutch';
+
+/* Centrale datastructuur. De CSV wordt hier altijd uit opgebouwd,
+   nooit uit de DOM, zodat een mislukt beeld nooit een rij kan wissen. */
+let BULK=[];
+let UID=0;
+
+const ST={
+  wait   :{t:'nog niet verwerkt',                 c:''},
+  loading:{t:'Afbeelding laden…',                 c:''},
+  loaded :{t:'Afbeelding geladen',                c:'ok'},
+  http   :{t:'HTTP-fout',                         c:'err'},
+  cors   :{t:'Beeld laden mislukt',                c:'err'},
+  format :{t:'Ongeldig afbeeldingsformaat',       c:'err'},
+  decode :{t:'Decoderen mislukt',                 c:'err'},
+  render :{t:'Renderen mislukt',                  c:'err'},
+  upload :{t:'Cloudinary-upload mislukt',         c:'err'},
+  nohost :{t:'Beeld klaar — Cloudinary ontbreekt',c:'warn'},
+  prompt :{t:'Afbeelding ontbreekt — kies een bestand of voeg een beeldlink toe',c:'warn'},
+  nourl  :{t:'Geen beeld-URL in dit blok',        c:'err'},
+  ready  :{t:'Klaar',                             c:'ok'}
+};
+const OK_TYPES=['image/jpeg','image/jpg','image/png','image/webp','image/gif','image/avif','image/bmp','image/svg+xml'];
+
+let toastTimer=0;
+function toast(m,err){const t=bq('toast');if(!t||!m)return;t.textContent=m;t.classList.toggle('err',!!err);t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},err?7000:4200);}
+function bulkSet(m,err){const el=bq('bulkStatus');el.textContent=m||'';el.classList.toggle('err',!!err);toast(m,err);}
+const pad2=n=>String(n).padStart(2,'0');
+const isoDay=d=>d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+
+/* ---------- 1. Tekst inlezen ---------- */
+
+const META_RE=/^\s*(VERIFICATION|VERIFICATIE|HISTORICAL IMAGE|HISTORISCHE AFBEELDING|DIRECT DOWNLOAD|DOWNLOAD|PHOTO URL|IMAGE URL|FOTO URL|IMAGE SOURCE|SOURCE|BRON|CREDIT)\b/i;
+const HOOK_RE=/^\s*(?:IMAGE|PHOTO|FOTO)?\s*HOOK\b\s*:?\s*(.*)$/i;
+const CAP_RE=/^[ \t]*FACEBOOK\s+CAPTION\b/im;
+
+function hookFrom(chunk){
+  const lines=chunk.split(/\r?\n/);
+  for(let i=0;i<lines.length;i++){
+    const m=lines[i].match(HOOK_RE);
+    if(!m)continue;
+    if(m[1].trim())return m[1].trim();
+    const out=[];
+    for(let j=i+1;j<lines.length;j++){
+      const t=lines[j].trim();
+      if(!t){if(out.length)break;continue;}
+      if(META_RE.test(t)||CAP_RE.test(t))break;
+      out.push(t);
+    }
+    if(out.length)return out.join(' ');
+  }
+  const cand=lines.map(l=>l.trim())
+    .filter(l=>l&&!META_RE.test(l)&&!HOOK_RE.test(l)&&!/https?:\/\//.test(l)&&l.length>25);
+  return cand[cand.length-1]||'';
+}
+
+/* Geplakte tekst sleept vaak onzichtbare tekens mee uit de bron:
+   word joiners (U+2060), zero-width spaces, non-breaking spaces en het
+   vervangingsteken U+FFFD van kapotte voetnootlinks. Die zijn geen
+   whitespace, dus ze plakken aan de URL vast en leveren een HTTP 404 op
+   een adres dat in de browser prima werkt. Strippen dus. */
+function cleanUrl(u){
+  let x=String(u).replace(/[\u0000-\u0020\u00A0\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2028\u2029\u2060-\u2064\uFEFF\uFFF9-\uFFFD]/g,'');
+  x=x.replace(/[.,;:!?]+$/,'');
+  if(x.indexOf('(')===-1)x=x.replace(/\)+$/,'');
+  if(x.indexOf('[')===-1)x=x.replace(/\]+$/,'');
+  return x.trim();
+}
+
+function normWords(v){
+  return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/https?:\/\/\S+/g,' ').replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>2);
+}
+function hookSimilarity(a,b){
+  if(normTopic(a)&&normTopic(a)===normTopic(b))return 1;
+  const A=new Set(normWords(a)),B=new Set(normWords(b));if(!A.size||!B.size)return 0;
+  let hit=0;A.forEach(w=>{if(B.has(w))hit++;});
+  return hit<3?0:hit/(A.size+B.size-hit);
+}
+
+
+function candidateScore(u){
+  let n=0;
+  if(/(upload|thumb)\.wikimedia\.org/i.test(u))n+=100;
+  if(/\.(jpe?g|png|webp|gif)(\?|#|$)/i.test(u))n+=75;
+  if(/\/wiki\/(?:File|Bestand|Image):/i.test(u))n+=60;
+  if(/commons\.wikimedia\.org/i.test(u))n+=20;
+  if(/(facebook|instagram|pinterest|tiktok)\.com/i.test(u))n-=80;
+  if(/\.(html?|php)(\?|#|$)/i.test(u))n-=40;
+  return n;
+}
+function extractCaption(chunk){
+  const lines=chunk.split(/\r?\n/);
+  let start=-1;
+  for(let i=0;i<lines.length;i++)if(CAP_RE.test(lines[i])){start=i+1;break;}
+  if(start<0)return '';
+  const out=[];
+  for(let i=start;i<lines.length;i++){
+    const t=lines[i].trim();
+    if(META_RE.test(t)||HOOK_RE.test(t))break;
+    out.push(lines[i]);
+  }
+  return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+/* Zoekt de portret-URL. Modellen leveren dit veld in wisselende vormen aan:
+   soms "PERSON IMAGE:" met de link er direct achter, soms een beschrijving
+   onder "PERSON IMAGE:" met de link pas onder "PERSON DIRECT DOWNLOAD:".
+   We pakken daarom het hele blok met PERSON/PORTRET-regels en zoeken daar de
+   eerste bruikbare link in, met voorkeur voor een download-regel. */
+function findInsetUrl(chunk){
+  const PERSON='(?:PERSON|PORTRAIT|PORTRET|PERSOON|INSET)';
+  /* Eerst de expliciete downloadvariant. */
+  const dl=chunk.match(new RegExp(
+    '^[ \\t]*'+PERSON+'[ \\t]*(?:IMAGE[ \\t]*)?(?:DIRECT[ \\t]*)?DOWNLOAD[ \\t]*:[ \\t]*(?:\\n[ \\t]*)*(https?:\\/\\/[^\\s<>]+)','im'));
+  if(dl)return cleanUrl(dl[1]);
+  /* Anders: vanaf de eerste PERSON-regel de eerstvolgende link pakken, maar
+     stoppen zodra een label begint dat niets met het portret te maken heeft. */
+  const head=chunk.match(new RegExp('^[ \\t]*'+PERSON+'\\b[^\\n]*:[ \\t]*$|^[ \\t]*'+PERSON+'\\b[^\\n]*:','im'));
+  if(!head)return '';
+  let rest=chunk.slice(head.index+head[0].length);
+  const stop=rest.search(/^[ 	]*(?:IMAGE[ 	]+HOOK|FACEBOOK[ 	]+CAPTION|VERIFICATION|HISTORICAL[ 	]+IMAGE|DIRECT[ 	]+DOWNLOAD|IMAGE[ 	]+SOURCE)[ 	]*:/im);
+  if(stop>-1)rest=rest.slice(0,stop);
+  const u=rest.match(/https?:\/\/[^\s<>]+/);
+  return u?cleanUrl(u[0]):'';
+}
+function labeledUrl(chunk,label){
+  const rx=new RegExp('^[ \\t]*'+label+'[ \\t]*:[ \\t]*(?:\\n[ \\t]*)?(https?:\\/\\/[^\\s<>]+)','im');
+  const m=chunk.match(rx);return m?cleanUrl(m[1]):'';
+}
+function parseBulk(text){
+  const out=[];let cur={},active='',inReserve=false;
+  const names={'IMAGE HOOK':'hook','PHOTO HOOK':'hook','HOOK':'hook','FACEBOOK CAPTION':'caption','FB CAPTION':'caption','IMAGE STORY':'story','IMAGE PROMPT':'prompt','IMAGE LABEL':'label','IMAGE MODE':'mode','CLASSIFICATION':'classification','VERIFICATION':'verification','VERIFICATIE':'verification','SOURCE':'verificationSource','BRON':'verificationSource','HISTORICAL IMAGE':'description','IMAGE SOURCE':'source','DIRECT DOWNLOAD':'direct','DOWNLOAD':'direct','PHOTO URL':'direct','IMAGE URL':'direct','PERSON IMAGE':'person','PERSON DIRECT DOWNLOAD':'person','PERSON IMAGE SOURCE':'personSource','ALTERNATIVE IMAGE':'alt','ALT SOURCE':'alt','CREDIT':'credit'};
+  const url=v=>cleanUrl((String(v||'').match(/https?:\/\/[^\s<>"`]+/)||[''])[0]);
+  const flush=()=>{
+    if(cur.hook||cur.caption){
+      const ai=/RECONSTRUCTION/i.test(cur.mode||'');const src=url(cur.direct);
+      out.push({id:++UID,origin:inReserve?'reserve':'main',slot:'',perf:null,imageCredit:'',title:cur.title||'',imageHook:(cur.hook||'').trim(),imageStory:(cur.story||'').trim(),facebookCaption:(cur.caption||'').trim(),classification:cur.classification||'HISTORY UNKNOWN',imageMode:cur.mode||'ARCHIVE IMAGE',verification:cur.verification||'',verificationSources:cur.verificationSource||'',historicalImage:cur.description||'',imageLabel:cur.label||(ai?'Illustrated reconstruction':''),aiPrompt:(cur.prompt||'').trim(),isAi:ai,
+        tags:(cur.caption||'').match(/#[\p{L}\p{N}_]+/gu)||[],sourceImageUrl:src,imageSourceUrl:url(cur.source),altSourceUrl:url(cur.alt),insetUrl:url(cur.person),resolvedUrl:'',loadedImageBlob:null,insetImg:null,insetStatus:cur.person?'wait':'none',insetPos:'',dirtyImage:false,dirtyText:false,localMain:null,localInset:null,finalCloudinaryUrl:'',imageStatus:src||url(cur.source)?'wait':ai?'prompt':'nourl',brand:BRAND,scheduledDate:'',scheduledTime:'',manualTime:false,thumb:'',file:'',error:'',duplicateOf:0,via:'',revision:0});
+    }cur={};active='';
+  };
+  for(const raw of String(text||'').replace(/\r/g,'').split('\n')){
+    const line=raw.trim().replace(/^#{1,6}\s*/,'').replace(/^[-•]\s*/,'').replace(/\*\*/g,'');
+    if(/^```/.test(line)){if(cur.hook||cur.caption)flush();continue;}
+    const rsv=line.length<140&&(/^RESERVES?\b/.test(line)||/^reserves?\s*(?:posts?|onderwerpen|topics)?\s*:?\s*$/i.test(line))?line.match(/^RESERVES?\b[\s\d:.)\-–]*(.*)$/i):null;
+    if(rsv){flush();inReserve=true;if(rsv[1].trim())cur.title=rsv[1].trim();continue;}
+    if(/^(?:REELS?\b|STORIES\s*:|STATUS\s*:|NEW TOPICS\s*:|IMAGE LINKS GEOPEND|SUCCESFOOTER)/i.test(line)){flush();break;}
+    if(/^\d+[.)]\s+\S/.test(line)){flush();cur.title=line.replace(/^\d+[.)]\s+/,'');continue;}
+    const m=line.match(/^([A-Z][A-Z ]+)\s*[:：]\s*(.*)$/i);
+    const key=m&&names[m[1].trim().toUpperCase()];
+    if(key){if(key==='hook'&&cur.hook)flush();active=key;cur[key]=m[2];continue;}
+    if(active)cur[active]=(cur[active]||'')+(active==='caption'||active==='verificationSource'?'\n':' ')+raw.trim();
+  }
+  flush();refreshDuplicates(out);return out;
+}
+function refreshDuplicates(rows=BULK){
+  rows.forEach((it,i)=>{it.duplicateOf=0;
+    for(let j=0;j<i;j++)if(hookSimilarity(it.imageHook,rows[j].imageHook)>=.8){it.duplicateOf=rows[j].id;break;}
+    it.historyDuplicate=topicSeenBefore(it.imageHook,it.brand);
+  });
+}
+
+
+/* Commons-/Wikipedia-bestandspagina's zijn HTML, geen beeld.
+   Via de MediaWiki-API halen we de echte bestandslink op. origin=* geeft
+   anonieme CORS-toegang, wat ook werkt vanaf een null-origin. */
+function commonsFileName(raw){
+  if(!raw)return '';
+  try{
+    const u=new URL(raw);
+    let path=decodeURIComponent(u.pathname);
+    let m=path.match(/\/wiki\/(?:File|Bestand|Image|Datei|Fichier|Archivo):(.+)$/i);
+    if(m)return m[1];
+    m=path.match(/\/wiki\/Special:(?:Redirect\/file|FilePath)\/(.+)$/i);
+    if(m)return m[1];
+    // upload.wikimedia.org URLs: filename is the last path segment (thumb URLs have width as last segment).
+    if(/(upload|thumb)\.wikimedia\.org$/i.test(u.hostname)){
+      const seg=path.split('/').filter(Boolean);
+      let last=seg[seg.length-1]||'';
+      if(seg.includes('thumb'))last=seg[seg.length-2]||last;
+      return last;
+    }
+  }catch(e){}
+  return '';
+}
+
+/* Resolve any Commons File page, Special:Redirect/file URL, or Wikimedia upload URL
+   through the MediaWiki API. This gives us a stable CORS-friendly image URL and
+   avoids relying on browser redirects from a local Android/content:// origin. */
+/* Special:FilePath is een vaste, voorspelbare route: Wikimedia stuurt hem
+   door naar het echte bestand op upload.wikimedia.org. Hij heeft geen
+   API-aanroep nodig en werkt dus ook als de API geblokkeerd wordt, en een
+   proxy die redirects volgt (wsrv.nl, Cloudinary fetch) krijgt er gewoon
+   een afbeelding uit in plaats van een HTML-pagina. */
+function wikiHostOf(raw){
+  try{
+    const h=new URL(raw).hostname;
+    if(/(^|\.)wikipedia\.org$/i.test(h))return h;
+    if(/(^|\.)wikimedia\.org$/i.test(h))return 'commons.wikimedia.org';
+  }catch(e){}
+  return '';
+}
+function isFilePage(raw){
+  return /\/wiki\/(?:File|Bestand|Image|Datei|Fichier|Archivo):/i.test(raw)
+      || /\/wiki\/Special:Redirect\/file\//i.test(raw);
+}
+function filePathUrl(raw,name,width){
+  const host=wikiHostOf(raw)||'commons.wikimedia.org';
+  return 'https://'+host+'/wiki/Special:FilePath/'+encodeURIComponent(name)+(width?'?width='+width:'');
+}
+
+async function resolveSrc(raw){
+  if(!raw)return raw;
+  const name=commonsFileName(raw);
+  if(!name||!wikiHostOf(raw))return raw;
+  /* Een bestandspagina is HTML en nooit bruikbaar als beeld. Lukt de API niet,
+     val dan terug op Special:FilePath in plaats van op de pagina zelf. */
+  const fallback=filePathUrl(raw,name,1920);
+  const api='https://'+(wikiHostOf(raw)||'commons.wikimedia.org')+'/w/api.php?action=query&format=json&origin=*'+
+    '&prop=imageinfo&iiprop=url&iiurlwidth=1920&titles='+encodeURIComponent('File:'+name);
+  try{
+    const r=await timedFetch(api,{mode:'cors',credentials:'omit',cache:'no-store'});
+    if(!r.ok)throw new Error('MediaWiki API HTTP '+r.status);
+    const d=await r.json();
+    const pages=(d.query&&d.query.pages)||{};
+    const p=Object.keys(pages).map(k=>pages[k])[0];
+    const ii=p&&p.imageinfo&&p.imageinfo[0];
+    if(!ii)throw new Error('Wikimedia-bestand niet gevonden');
+    return ii.thumburl||ii.url||fallback;
+  }catch(err){
+    return fallback;
+  }
+}
+
+/* ---------- 2. Beeld laden ---------- */
+
+async function fetchAsBlob(url,label){
+  let r;
+  try{
+    r=await timedFetch(url,{mode:'cors',redirect:'follow',credentials:'omit',cache:'no-store'});
+  }catch(net){
+    const e=new Error(label+': netwerk of CORS geweigerd — '+net.message);e.kind='cors';throw e;
+  }
+  if(!r.ok){
+    let hint='';
+    if(label==='Cloudinary fetch'&&(r.status===401||r.status===403))
+      hint=' — zet "fetched URL" aan in Cloudinary of controleer de cloud name';
+    if(r.status===404)hint=' — adres bestaat niet';
+    const e=new Error(label+': HTTP '+r.status+hint);e.kind='http';e.status=r.status;throw e;
+  }
+  const ct=(r.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+  const blob=await r.blob();
+  const type=ct||(blob.type||'').toLowerCase();
+  if(type&&OK_TYPES.indexOf(type)===-1){
+    const e=new Error(label+': content-type is '+type);e.kind='format';throw e;
+  }
+  if(!blob.size){const e=new Error(label+': leeg bestand');e.kind='format';throw e;}
+  return blob;
+}
+
+function proxyAttempts(url){
+  const out=[];
+  const cloud=bq('cldCloud').value.trim();
+  if(cloud)out.push({label:'Cloudinary fetch',
+    url:'https://res.cloudinary.com/'+encodeURIComponent(cloud)+'/image/fetch/f_auto,q_auto,w_1800/'+encodeURIComponent(url)});
+  const tpl=(bq('proxyUrl').value||'').trim();
+  if(tpl)out.push({label:'eigen proxy',
+    url:tpl.indexOf('{url}')>-1?tpl.replace('{url}',encodeURIComponent(url)):tpl+encodeURIComponent(url)});
+  // Built-in last resort for public historical images. This removes the need to configure a proxy on Android.
+  if(bq('publicProxy').checked)out.push({label:'image proxy',url:'https://wsrv.nl/?url='+encodeURIComponent(url)+'&w=1800&output=jpg'});
+  return out;
+}
+
+/* Losse <img> met crossOrigin: soms slaagt dit waar fetch struikelt over
+   een ontbrekende content-type-header. Levert een Image, geen Blob. */
+function imgFromUrl(url){
+  return new Promise((res,rej)=>{
+    const i=new Image();
+    i.crossOrigin='anonymous';
+    const timer=setTimeout(()=>{i.src='';rej(new Error('beeldverzoek verlopen'));},12000);
+    i.onload=()=>{clearTimeout(timer);i.naturalWidth?res(i):rej(new Error('leeg beeld'));};
+    i.onerror=()=>{clearTimeout(timer);rej(new Error('img-element: netwerk of CORS'));};
+    i.src=url;
+  });
+}
+
+function blobToImage(blob){
+  return new Promise((res,rej)=>{
+    const u=URL.createObjectURL(blob);
+    const i=new Image();
+    i.onload=()=>{res({img:i,revoke:()=>URL.revokeObjectURL(u)});};
+    i.onerror=()=>{URL.revokeObjectURL(u);const e=new Error('bestand is geen leesbare afbeelding');e.kind='decode';rej(e);};
+    i.src=u;
+  });
+}
+
+/* Retourneert {blob|img, via, tried} of gooit een fout met .kind en .tried */
+async function loadExternalImage(url){
+  const tried=[],failures=[];
+  let lastKind='cors';
+  /* Op een content:// of file:// origin faalt de directe poging altijd, en elke
+     mislukte poging kost seconden. Staat Cloudinary ingesteld, dan is dat de
+     betrouwbaarste route (server-side ophalen, dus geen CORS) — die gaat voorop.
+     Direct blijft er als tweede in staan, want vanaf een echte host wint die. */
+  const proxies=proxyAttempts(url);
+  const direct={label:'direct',url:url};
+  // Wikimedia upload URLs are already public, CORS-friendly image assets.
+  // Always try them directly BEFORE Cloudinary. This avoids Cloudinary fetch 401/403
+  // when fetched-URL delivery is disabled, while keeping Cloudinary as fallback.
+  const isWikimediaAsset=/^https:\/\/(upload|thumb)\.wikimedia\.org\//i.test(url);
+  const attempts=isWikimediaAsset
+    ? [direct].concat(proxies)
+    : ((proxies.length&&proxies[0].label==='Cloudinary fetch')
+      ? [proxies[0],direct].concat(proxies.slice(1))
+      : [direct].concat(proxies));
+  for(const a of attempts){
+    try{
+      const blob=await fetchAsBlob(a.url,a.label);
+      return {blob:blob,via:a.label,tried:tried};
+    }catch(err){
+      tried.push(a.label+' → '+err.message);
+      failures.push(err);lastKind=err.kind||lastKind;
+    }
+  }
+  if(!failures.some(e=>e.kind==='http'&&e.message.startsWith('direct:'))){try{
+    const img=await imgFromUrl(url);
+    return {img:img,via:'browser image',tried:tried};
+  }catch(err){tried.push('browser image → '+err.message);}}
+  const e=new Error('Alle beeldroutes mislukt. '+tried.join(' · '));
+  const known=failures.find(x=>x.status===404)||failures.find(x=>x.kind==='http')||failures.find(x=>x.kind==='format');
+  e.kind=known?.kind||lastKind;e.status=known?.status;e.tried=tried;
+  throw e;
+}
+
+/* ---------- 3. Renderen ---------- */
+
+async function renderItem(it,img){
+  const keep={...S};let blob;
+  try{
+    Object.assign(S,BRAND_STYLES[it.brand]||{});
+    if(it.brand==='dutch'&&!String(it.imageStory||'').trim())throw new Error('IMAGE STORY ontbreekt. Vul de tekst onder de vlag in.');
+    S.main=img;S.inset=it.insetImg||null;S.caption=it.imageHook||'';S.imageStory=it.imageStory||'';S.isAi=!!it.isAi;
+    if(it.insetPos)S.insetPos=it.insetPos;
+    if(it.brand==='dutch'&&LOGO_IMGS.dutch?.decode)await LOGO_IMGS.dutch.decode();
+    await prepareFocus(img);render();
+    if(S.textOverflow&&it.brand==='dutch')throw new Error('Tekst past niet in het TDA-sjabloon. Verkort de kop of IMAGE STORY.');
+    // Copy pixels before restoring the shared editor. toBlob is asynchronous.
+    const copy=document.createElement('canvas');copy.width=cv.width;copy.height=cv.height;copy.getContext('2d').drawImage(cv,0,0);
+    it.renderWarning=S.textOverflow?'Hook te lang: preview ingekort. Verkort de hook en render opnieuw.':'';
+    const fmt=exportFormat();
+    blob=await new Promise((resolve,reject)=>copy.toBlob(b=>b?resolve(b):reject(new Error(fmt.label+' kon niet worden gemaakt')),fmt.mime,fmt.quality));
+  }finally{Object.assign(S,keep);render();}
+  return blob;
+}
+
+
+async function uploadCloud(blob,it){
+  const cloud=bq('cldCloud').value.trim(),preset=bq('cldPreset').value.trim();
+  if(!cloud||!preset)return '';
+  const fd=new FormData();
+  fd.append('file',blob,it.file||('post-'+it.id+'.'+exportFormat().ext));
+  fd.append('upload_preset',preset);
+  let r;
+  try{
+    r=await timedFetch('https://api.cloudinary.com/v1_1/'+encodeURIComponent(cloud)+'/image/upload',{method:'POST',body:fd});
+  }catch(net){const e=new Error('Cloudinary onbereikbaar — '+net.message);e.kind='upload';throw e;}
+  if(!r.ok){
+    let d='';try{d=(await r.json()).error.message;}catch(x){}
+    const e=new Error('Cloudinary HTTP '+r.status+(d?' — '+d:''));e.kind='upload';throw e;
+  }
+  const d=await r.json();
+  if(!d.secure_url){const e=new Error('Cloudinary gaf geen URL terug');e.kind='upload';throw e;}
+  return d.secure_url;
+}
+
+/* Verwerkt één item van begin tot eind. Elke fout laat het item staan. */
+async function processItemInternal(it,upload=true){
+  const revision=it.revision||0;
+  it.finalCloudinaryUrl='';it.loadedImageBlob=null;
+  if(it.thumb){URL.revokeObjectURL(it.thumb);it.thumb='';}
+  it.error='';it.via='';
+  if(!it.localMain&&!it.sourceImageUrl&&!it.imageSourceUrl&&!it.altSourceUrl){it.imageStatus=it.isAi?'prompt':'nourl';drawBulkList();return;}
+  it.imageStatus='loading';drawBulkList();
+  let img=null,revoke=null,errors=[];
+
+  /* Zelf gekozen bestand wint van alles. Het komt van de telefoon, dus er is
+     geen netwerk, geen proxy en geen CORS bij betrokken — dit lukt altijd. */
+  if(it.localMain){
+    try{
+      const d=await blobToImage(it.localMain);
+      img=d.img;revoke=d.revoke;
+      it.via='eigen bestand';it.resolvedUrl='';
+      it.imageStatus='loaded';drawBulkList();
+    }catch(err){
+      it.imageStatus='decode';
+      it.error='Eigen bestand kon niet worden gelezen: '+err.message;
+      drawBulkList();return;
+    }
+  }
+
+  const candidates=[];
+  const add=u=>{u=String(u||'').trim();if(u&&!candidates.includes(u))candidates.push(u);};
+  if(!img){add(it.sourceImageUrl);if(isFilePage(it.imageSourceUrl)&&wikiHostOf(it.imageSourceUrl))add(it.imageSourceUrl);add(it.altSourceUrl);}
+  for(const raw of candidates){
+    try{
+      const resolved=await resolveSrc(raw);
+      const got=await loadExternalImage(resolved);
+      it.resolvedUrl=resolved;
+      if(got.img){img=got.img;}
+      else{
+        const dec=await blobToImage(got.blob);
+        img=dec.img;revoke=dec.revoke;
+      }
+      it.via=(/commons\.wikimedia\.org|(upload|thumb)\.wikimedia\.org/i.test(raw)?'Wikimedia → ':'')+got.via;
+      it.imageStatus='loaded';drawBulkList();break;
+    }catch(err){errors.push(err);}
+  }
+  if(!img){
+    const known=errors.find(e=>e.status===404)||errors.find(e=>e.kind==='http')||errors.find(e=>e.kind==='decode')||errors[0];
+    it.imageStatus=known?.kind||'cors';
+    it.error=errors.length?errors.map(e=>e.message).join(' || '):'Voeg een directe afbeeldingslink toe of kies een eigen hoofdfoto. De beeldbronpagina is geen afbeeldingsbestand.';
+    drawBulkList();return;
+  }
+  /* Het inzetbeeld is optioneel: faalt het, dan verschijnt de post zonder
+     portret in plaats van helemaal niet. */
+  let insetRevoke=null;
+  it.insetImg=null;
+  if(it.localInset){
+    it.insetStatus='loading';drawBulkList();
+    try{
+      const d=await blobToImage(it.localInset);
+      it.insetImg=d.img;insetRevoke=d.revoke;
+      await prepareFocus(it.insetImg);
+      it.insetStatus='ok';
+    }catch(err){
+      it.insetStatus='fail';
+      it.error=(it.error?it.error+' || ':'')+'Eigen portretbestand onleesbaar: '+err.message;
+    }
+    drawBulkList();
+  }else if(it.insetUrl){
+    it.insetStatus='loading';drawBulkList();
+    try{
+      const ir=await resolveSrc(it.insetUrl);
+      const ig=await loadExternalImage(ir);
+      if(ig.img){it.insetImg=ig.img;}
+      else{const d=await blobToImage(ig.blob);it.insetImg=d.img;insetRevoke=d.revoke;}
+      await prepareFocus(it.insetImg);
+      it.insetStatus='ok';
+    }catch(err){
+      it.insetStatus='fail';
+      it.error=(it.error?it.error+' || ':'')+'Portret: '+err.message;
+    }
+    drawBulkList();
+  }else{
+    it.insetStatus='none';
+  }
+  try{
+    const blob=await renderItem(it,img);
+    if((it.revision||0)!==revision){it.imageStatus='wait';return;}
+    it.file='post-'+String(it.id).padStart(2,'0')+'.'+exportFormat().ext;
+    it.loadedImageBlob=blob;
+    if(it.thumb)URL.revokeObjectURL(it.thumb);
+    it.thumb=URL.createObjectURL(blob);
+    if((it.revision||0)!==revision){it.imageStatus='wait';return;}
+    it.dirtyImage=false;it.dirtyText=false;
+    const url=upload?await uploadCloud(blob,it):'';
+    if(url){it.finalCloudinaryUrl=url;it.imageStatus='ready';}
+    else{it.finalCloudinaryUrl='';it.imageStatus=upload?'nohost':'loaded';}
+  }catch(err){
+    it.imageStatus=err.kind&&ST[err.kind]?err.kind:'render';
+    it.error=err.message;
+  }finally{
+    if(insetRevoke)insetRevoke();
+    it.insetImg=null;
+    if(revoke)revoke();
+    drawBulkList();
+  }
+}
+
+/* ---------- 4. Lijst met status en retry ---------- */
+
+function normTopic(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+function loadTopicHistory(){try{const data=JSON.parse(localStorage.getItem('pm_topic_history')||'[]');return Array.isArray(data)?data.filter(h=>h&&typeof h.hook==='string'&&BRANDS[h.brand]):[];}catch(e){return [];}}
+function topicSeenBefore(hook,brand){
+  const n=normTopic(hook);if(!n)return null;
+  const hist=loadTopicHistory();
+  let best=null,bestScore=0;
+  for(const h of hist){if(h.brand!==brand)continue;const sc=hookSimilarity(n,h.norm||normTopic(h.hook));if(sc>bestScore){bestScore=sc;best=h;}}
+  return bestScore>=0.72?Object.assign({score:bestScore},best):null;
+}
+function rememberExportedTopics(){
+  const hist=loadTopicHistory();const now=new Date().toISOString();
+  for(const it of BULK){if(!it.imageHook||!it.finalCloudinaryUrl||it.dirtyImage)continue;const n=normTopic(it.imageHook);if(!n)continue;
+    if(!hist.some(h=>h.brand===it.brand&&hookSimilarity(n,h.norm||normTopic(h.hook))>=0.9))hist.push({hook:it.imageHook,norm:n,brand:it.brand,date:it.scheduledDate||now.slice(0,10),savedAt:now});
+  }
+  try{localStorage.setItem('pm_topic_history',JSON.stringify(hist.slice(-3000)));}catch(e){}
+}
+function hookScore(it){
+  const h=String(it.imageHook||'').trim();let score=100;
+  if(h.length<28)score-=25;else if(h.length<40)score-=10;
+  if(h.length>180)score-=15;if(h.length>230)score-=20;
+  if(!/\d{3,4}/.test(h))score-=5;
+  if(!/[.!?]$/.test(h))score-=3;
+  if(/^(did you know|wist je dat)/i.test(h))score-=10;
+  if(it.duplicateOf||(it.historyDuplicate&&!/DOUBLE-DOWN|NEW ANGLE/.test(it.classification||'')))score-=35;
+  return Math.max(0,Math.min(100,score));
+}
+function qualityState(){
+  const scope=exportScope(),total=scope.length;
+  const noMedia=scope.filter(x=>!x.finalCloudinaryUrl||x.dirtyImage).length;
+  const noCaption=scope.filter(x=>{const words=x.facebookCaption.trim().split(/\s+/).filter(Boolean).length;return words<200||words>250;}).length;
+  const weakHook=scope.filter(x=>x.brand==='dutch'?(!x.imageHook.trim()||x.imageHook.length>100):hookScore(x)<65).length;
+  const dup=scope.filter(x=>x.duplicateOf||(x.historyDuplicate&&!/DOUBLE-DOWN|NEW ANGLE/.test(x.classification||''))).length;
+  const noUrl=scope.filter(x=>!x.sourceImageUrl&&!x.imageSourceUrl&&!x.localMain).length;
+  return {total,noMedia,noCaption,weakHook,dup,noUrl,pass:total>0&&!noMedia&&!noCaption&&!weakHook&&!dup&&!noUrl};
+}
+function updateQualityGate(){
+  const q=qualityState(),pill=bq('gatePill'),list=bq('gateList');if(!pill||!list)return q;
+  const open=q.noMedia+q.noCaption+q.weakHook+q.dup+q.noUrl;
+  pill.textContent=!q.total?'nog niets ingelezen':(open?open+' aandachtspunt'+(open===1?'':'en'):'alles compleet');
+  pill.className='gate-pill '+(open?'bad':'good');
+  const rows=[['Afbeeldingen',q.noMedia],['Captions',q.noCaption],['Hooks',q.weakHook],['Dubbels',q.dup],['Bron-URL',q.noUrl]];
+  list.innerHTML='';for(const [label,n] of rows){const d=document.createElement('div');d.className=n?'bad':'good';d.textContent=(n?'✕ ':'✓ ')+label+(n?' — '+n+(n===1?' probleem':' problemen'):' — goed');list.appendChild(d);}
+  return q;
+}
+function drawReviewGrid(){
+  const box=bq('reviewGrid');if(!box)return;box.innerHTML='';
+  BULK.forEach((it,i)=>{const card=document.createElement('div');card.className='review-card '+(it.imageStatus==='ready'?'':'bad');const im=document.createElement('img');if(it.thumb)im.src=it.thumb;const p=document.createElement('p');p.textContent=(i+1)+'. '+(it.imageHook||'Zonder hook');card.append(im,p);box.appendChild(card);});
+}
+
+let BULK_FILTER='all';
+function bulkItemMatchesFilter(it){
+  if(BULK_FILTER==='ready')return !!it.finalCloudinaryUrl&&!it.dirtyImage;
+  if(BULK_FILTER==='duplicates')return !!(it.duplicateOf||it.historyDuplicate);
+  if(BULK_FILTER==='main')return it.slot==='main'||(!it.slot&&!isSelectionActive());
+  if(BULK_FILTER==='reserve')return it.slot==='reserve';
+  if(BULK_FILTER==='problems')return it.imageStatus!=='ready'||!!(it.duplicateOf||it.historyDuplicate)||(it.brand!=='dutch'&&hookScore(it)<65)||!it.facebookCaption||it.facebookCaption.trim().length<250||(!it.localMain&&!it.sourceImageUrl&&!it.imageSourceUrl);
+  return true;
+}
+function updateCockpit(){
+  refreshDuplicates();
+  const s=stats();
+  const dup=exportScope().filter(x=>x.duplicateOf||(x.historyDuplicate&&!/DOUBLE-DOWN|NEW ANGLE/.test(x.classification||''))).length;
+  const set=(id,v)=>{const el=bq(id);if(el)el.textContent=String(v);};
+  set('kpiItems',s.total);const kl=bq('kpiItems')?.nextElementSibling;if(kl)kl.textContent=s.selection?'hoofdposts':'items';set('kpiReady',s.ready);set('kpiProblems',s.failed);set('kpiDuplicates',dup);
+  const q=updateQualityGate();drawReviewGrid();
+  const pct=s.total?Math.round(((s.previews+s.ready)/(2*s.total))*100):0;const pb=bq('batchProgress');if(pb)pb.style.width=pct+'%';
+  const dot=bq('liveDot'),txt=bq('liveText');if(dot&&txt){dot.className='v4-dot'+(q.pass?' good':'');txt.textContent=!s.all?'Nog geen batch geladen':q.pass?'Batch volledig klaar voor export':s.previews+' van '+s.total+' previews · '+s.ready+' geüpload · '+s.failed+' fout'+(s.failed===1?'':'en');}
+}
+function moveBulk(from,to){
+  if(to<0||to>=BULK.length)return;
+  const x=BULK.splice(from,1)[0];BULK.splice(to,0,x);
+  applySchedule(true);drawBulkList();
+}
+function removeBulk(index){
+  const x=BULK[index];if(x&&x.thumb)URL.revokeObjectURL(x.thumb);
+  BULK.splice(index,1);applySchedule(true);drawBulkList();
+}
+
+function drawBulkList(){
+  refreshDuplicates();
+  const box=bq('bulkList');
+  const active=document.activeElement;const activeRow=active?.closest?.('.bitem');const activeId=activeRow?.dataset.id;const activeIndex=activeRow?[...activeRow.querySelectorAll('input,textarea,select')].indexOf(active):-1;const cursor=active?.selectionStart;
+  const opened=[...box.querySelectorAll('.bdetails[open]')].map(el=>el.closest('.bitem').dataset.id);
+  box.innerHTML='';
+  BULK.forEach((it,i)=>{
+    if(!bulkItemMatchesFilter(it))return;
+    const st=ST[it.imageStatus]||ST.wait;
+    const row=document.createElement('div');row.className='bitem';row.dataset.id=String(it.id);
+    row.dataset.problem=String(['http','cors','format','decode','render','upload','nourl'].includes(it.imageStatus));
+    row.dataset.ready=String(it.imageStatus==='ready');
+
+    const im=document.createElement('img');im.className='bthumb';im.alt='';
+    if(it.thumb)im.src=it.thumb;im.alt='Preview post '+(i+1);
+    im.onclick=()=>{if(it.thumb){bq('saveImg').src=it.thumb;sheet.classList.add('is-on');}};
+    im.onerror=()=>im.removeAttribute('src');
+
+    const main=document.createElement('div');main.className='bmain';
+    const num=document.createElement('span');num.className='bnum';
+    num.textContent='Item '+(i+1)+' — '+(BRANDS[it.brand]||BRANDS.dutch).name;
+
+    const hook=document.createElement('input');hook.type='text';hook.value=it.imageHook;
+    hook.placeholder='Tekst op de foto';
+    hook.addEventListener('input',()=>{it.imageHook=hook.value;it.historyDuplicate=topicSeenBefore(it.imageHook,it.brand);it.dirtyImage=true;markDirty();updateCockpit();});
+
+    const fix=document.createElement('div');fix.className='bfix';
+    const dIn=document.createElement('input');dIn.type='date';dIn.value=it.scheduledDate;
+    const tIn=document.createElement('input');tIn.type='time';tIn.value=it.scheduledTime;
+    [[dIn,'scheduledDate'],[tIn,'scheduledTime']].forEach(pair=>{
+      pair[0].addEventListener('input',()=>{it[pair[1]]=pair[0].value;it.manualTime=true;});
+    });
+    fix.append(dIn,tIn);
+
+    const stat=document.createElement('p');stat.className='bstat '+st.c;
+    stat.textContent=(it.dirtyImage?'Gewijzigd — render preview opnieuw · ':'')+st.t+(it.imageStatus==='ready'&&it.via?' (via '+it.via+')':'');
+
+    main.append(num,hook,fix,stat);
+
+    const meta=document.createElement('div');meta.className='hookmeta';
+    if(it.slot){const sl=document.createElement('span');sl.className='badge slot slot-'+it.slot;sl.textContent={main:'hoofdpost',reserve:'reserve',out:'niet geselecteerd'}[it.slot]||it.slot;meta.appendChild(sl);}
+    else if(it.origin==='reserve'){const sl=document.createElement('span');sl.className='badge';sl.textContent='uit reserveblok';meta.appendChild(sl);}
+    if(it.perf){const ps=document.createElement('span');ps.className='badge score '+(it.perf.score>=65?'high':it.perf.score>=45?'mid':'low');ps.textContent='prioriteit '+it.perf.score+' · '+it.perf.category;ps.title=it.perf.reasons.join(' · ');meta.appendChild(ps);}
+    if(it.perf&&it.perf.similar){const sm=document.createElement('span');sm.className='badge '+(it.perf.similar.sim>=.45?'bad':'');sm.textContent=(it.perf.similar.sim>=.45?'lijkt op eerdere post':'verwant aan eerdere post')+' ('+Math.round(it.perf.similar.views).toLocaleString('nl-NL')+' views)';sm.title=it.perf.similar.text.slice(0,240);meta.appendChild(sm);}
+    const hb=document.createElement('span');hb.className='badge '+(it.imageHook.length>=35&&it.imageHook.length<=220?'ok':'bad');
+    hb.textContent='hook '+it.imageHook.length+' tekens';meta.appendChild(hb);
+    const cb=document.createElement('span');cb.className='badge '+(it.facebookCaption.length>=500?'ok':'bad');
+    cb.textContent='caption '+it.facebookCaption.trim().split(/\s+/).filter(Boolean).length+' woorden';meta.appendChild(cb);
+    const hs=hookScore(it);const sb=document.createElement('span');sb.className='badge score '+(hs>=80?'high':hs>=65?'mid':'low');sb.textContent='hookscore '+hs+'/100';if(it.brand!=='dutch')meta.appendChild(sb);else{const bodyBadge=document.createElement('span');const count=String(it.imageStory||'').trim().split(/\s+/).filter(Boolean).length;bodyBadge.className='badge '+(count>=40&&count<=60?'ok':'bad');bodyBadge.textContent='beeldtekst '+count+' woorden';meta.appendChild(bodyBadge);}
+    if(it.duplicateOf){const db=document.createElement('span');db.className='badge bad';db.textContent='dubbel in batch';meta.appendChild(db);}
+    if(it.historyDuplicate){const db=document.createElement('span');db.className='badge bad';db.textContent='eerder gebruikt '+(it.historyDuplicate.date||'');meta.appendChild(db);}
+    main.appendChild(meta);
+
+    const details=document.createElement('details');details.className='bdetails';details.open=opened.includes(String(it.id))||(!it.localMain&&!it.sourceImageUrl&&!it.imageSourceUrl);
+    const sum=document.createElement('summary');sum.textContent='Afbeelding, beeldtekst en caption bewerken';details.appendChild(sum);
+    const cap=document.createElement('textarea');cap.value=it.facebookCaption;cap.placeholder='Facebook caption';
+    cap.addEventListener('input',()=>{it.facebookCaption=cap.value;it.dirtyText=true;markDirty();updateCockpit();});details.appendChild(cap);
+    const storyLabel=document.createElement('label');storyLabel.textContent='IMAGE STORY — tekst onder de vlag (40–60 woorden)';const story=document.createElement('textarea');story.value=it.imageStory||'';story.setAttribute('aria-label','IMAGE STORY');story.oninput=()=>{it.imageStory=story.value;it.dirtyImage=true;markDirty();};details.append(storyLabel,story);
+    const provenance=document.createElement('p');provenance.className='hint';provenance.textContent=(it.imageMode||'ARCHIVE IMAGE')+' · '+(it.classification||'HISTORY UNKNOWN')+'\n'+(it.verificationSources||'');details.append(provenance);
+    const srcrow=document.createElement('div');srcrow.className='srcrow';
+    const srci=document.createElement('input');srci.type='text';srci.value=it.sourceImageUrl;srci.placeholder='DIRECT DOWNLOAD — directe link naar JPG, PNG of WebP';
+    srci.addEventListener('change',()=>{it.sourceImageUrl=srci.value.trim();it.resolvedUrl='';it.imageStatus=it.sourceImageUrl?'wait':'nourl';it.dirtyImage=true;markDirty();updateCockpit();});
+    srcrow.appendChild(srci);details.appendChild(srcrow);
+    const sourceRow=document.createElement('div');sourceRow.className='srcrow';
+    const sourceInput=document.createElement('input');sourceInput.type='text';sourceInput.value=it.imageSourceUrl||'';sourceInput.placeholder='IMAGE SOURCE — exacte bronpagina van deze afbeelding';
+    sourceInput.addEventListener('change',()=>{it.imageSourceUrl=sourceInput.value.trim();it.resolvedUrl='';it.dirtyImage=true;markDirty();if(it.imageStatus!=='ready')it.imageStatus=(it.sourceImageUrl||it.imageSourceUrl)?'wait':'nourl';updateCockpit();});
+    sourceRow.appendChild(sourceInput);details.appendChild(sourceRow);
+    const insetRow=document.createElement('div');insetRow.className='srcrow';
+    const insetInput=document.createElement('input');insetInput.type='text';
+    insetInput.value=it.insetUrl||'';
+    insetInput.placeholder='Portretfoto URL (klein inzetbeeld) — optioneel';
+    insetInput.addEventListener('change',()=>{
+      it.insetUrl=insetInput.value.trim();
+      it.insetStatus=it.insetUrl?'wait':'none';
+      it.dirtyImage=true;markDirty();updateCockpit();
+    });
+    insetRow.appendChild(insetInput);details.appendChild(insetRow);
+
+    /* Eigen bestand kiezen — werkt voor een Google-afbeelding, een AI-beeld of
+       een scan. Vervangt de URL-route volledig voor dit item. */
+    const fileRow=document.createElement('div');fileRow.className='row filerow';
+    const mkFile=(slot,label)=>{
+      const wrap=document.createElement('label');wrap.className='chip filechip';
+      const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.hidden=true;
+      const txt=document.createElement('span');
+      const naam=()=>it[slot]?(it[slot].name||'eigen bestand'):label;
+      txt.textContent=naam();
+      inp.addEventListener('change',()=>{
+        const f=inp.files&&inp.files[0];
+        if(!f)return;
+        it[slot]=f;
+        if(slot==='localMain')it.imageStatus='wait';
+        else it.insetStatus='wait';
+        txt.textContent=f.name;
+        it.dirtyImage=true;markDirty();
+        posRow.hidden=!(it.insetUrl||it.localInset);
+        clr.hidden=false;updateCockpit();
+      });
+      wrap.append(inp,txt);
+      const clr=document.createElement('button');
+      clr.className='btn btn-ghost mini';clr.textContent='×';clr.title='Eigen bestand verwijderen';
+      clr.hidden=!it[slot];
+      clr.addEventListener('click',()=>{
+        it[slot]=null;txt.textContent=label;clr.hidden=true;
+        if(slot==='localMain')it.imageStatus=it.sourceImageUrl?'wait':'nourl';
+        else it.insetStatus=it.insetUrl?'wait':'none';
+        it.dirtyImage=true;markDirty();
+        posRow.hidden=!(it.insetUrl||it.localInset);
+        updateCockpit();
+      });
+      fileRow.append(wrap,clr);
+    };
+    mkFile('localMain','Eigen hoofdfoto kiezen');
+    mkFile('localInset','Eigen portret kiezen');
+    details.appendChild(fileRow);
+
+    const posRow=document.createElement('div');posRow.className='row posrow';
+    const posLabel=document.createElement('span');posLabel.className='poslabel';
+    posLabel.textContent='Hoek portret:';posRow.appendChild(posLabel);
+    const CORNERS=[['','Algemeen'],['tl','Links boven'],['tr','Rechts boven'],['bl','Links onder'],['br','Rechts onder']];
+    const drawPos=()=>{
+      [...posRow.querySelectorAll('.chip')].forEach(c=>
+        c.setAttribute('aria-pressed',String((it.insetPos||'')===c.dataset.v)));
+    };
+    CORNERS.forEach(([v,txt])=>{
+      const c=document.createElement('button');c.className='chip';c.dataset.v=v;c.textContent=txt;
+      c.addEventListener('click',()=>{it.insetPos=v;drawPos();it.dirtyImage=true;markDirty();});
+      posRow.appendChild(c);
+    });
+    drawPos();
+    posRow.hidden=!(it.insetUrl||it.localInset);
+    details.appendChild(posRow);
+    insetInput.addEventListener('input',()=>{posRow.hidden=!(insetInput.value.trim()||it.localInset);});
+
+    addImageControls(details,it);
+    main.appendChild(details);
+
+    /* Bevestigknop. Wijzigingen aan hook, portret of bron vragen om een nieuw
+       beeld; een aangepaste caption raakt alleen de CSV en hoeft niet opnieuw
+       getekend te worden. Daarom twee verschillende acties achter één knop. */
+    const apply=document.createElement('button');
+    apply.className='btn btn-ghost mini apply';
+    const markDirty=(touch=true)=>{
+      if(it.dirtyImage){invalidate(it,touch);}
+      const img=!!it.dirtyImage,txt=!!it.dirtyText;if(img){stat.textContent='Gewijzigd — render preview opnieuw';stat.className='bstat warn';}
+      apply.hidden=!(img||txt);
+      apply.className='btn mini apply '+((img||txt)?'btn-main':'btn-ghost');
+      apply.textContent=img?'Bevestig — beeld opnieuw maken'
+        : txt?'Bevestig — caption aangepast' : 'Bevestigd';
+    };
+    apply.addEventListener('click',async()=>{
+      apply.disabled=true;
+      if(it.dirtyImage){
+        it.resolvedUrl='';
+        bulkSet('Item '+(i+1)+': beeld opnieuw maken…');
+        await processItem(it,false);
+        bulkSet('Item '+(i+1)+' bijgewerkt: '+(ST[it.imageStatus]||ST.wait).t,
+                it.imageStatus!=='ready');
+      }else{
+        it.dirtyText=false;
+        bulkSet('Item '+(i+1)+': caption bevestigd. Het beeld blijft ongewijzigd.');
+        updateCockpit();drawBulkList();
+      }
+    });
+    markDirty(false);
+    main.appendChild(apply);
+
+    const mv=document.createElement('div');mv.className='bmove';
+    const up=document.createElement('button');up.className='btn btn-ghost mini';up.textContent='↑';up.title='Omhoog';up.disabled=i===0;up.onclick=()=>moveBulk(i,i-1);
+    const dn=document.createElement('button');dn.className='btn btn-ghost mini';dn.textContent='↓';dn.title='Omlaag';dn.disabled=i===BULK.length-1;dn.onclick=()=>moveBulk(i,i+1);
+    const del=document.createElement('button');del.className='btn btn-ghost mini';del.textContent='Verwijder';del.onclick=()=>removeBulk(i);
+    mv.append(up,dn,del);main.appendChild(mv);
+
+    if(it.insetStatus&&it.insetStatus!=='none'){
+      const ip=document.createElement('span');ip.className='badge '+(it.insetStatus==='fail'?'bad':'ok');
+      ip.textContent='portret '+({wait:'nog niet geladen',loading:'laden…',ok:'in beeld',fail:'mislukt'}[it.insetStatus]||it.insetStatus);
+      main.appendChild(ip);
+    }
+    if(it.error){
+      const dbg=document.createElement('p');dbg.className='dbg';dbg.textContent=it.error;
+      main.appendChild(dbg);
+    }
+    if(['http','cors','format','decode','render','upload','nohost','nourl'].indexOf(it.imageStatus)>-1){
+      const rt=document.createElement('button');
+      rt.className='btn btn-ghost mini';rt.textContent='Opnieuw proberen';
+      rt.addEventListener('click',async()=>{
+        rt.disabled=true;it.resolvedUrl='';
+        await processItem(it);bulkSet('Item '+(i+1)+': '+(ST[it.imageStatus]||ST.wait).t,st.c==='err');
+      });
+      const src=document.createElement('input');src.type='text';src.value=it.sourceImageUrl;
+      src.placeholder='Beeld-URL';
+      src.addEventListener('input',()=>{it.sourceImageUrl=src.value.trim();it.resolvedUrl='';invalidate(it);});
+      const wrap=document.createElement('div');wrap.className='bfix';wrap.append(src,rt);
+      main.appendChild(wrap);
+    }
+
+    row.append(im,main);box.appendChild(row);
+    if(activeId===String(it.id)&&activeIndex>=0){const next=row.querySelectorAll('input,textarea,select')[activeIndex];if(next){next.focus({preventScroll:true});try{next.setSelectionRange(cursor,cursor);}catch(e){}}}
+  });
+  updateCockpit();
+}
+
+/* ---------- 5. Merk en tijdschema ---------- */
+
+function brandHint(){
+  const b=BRANDS[BRAND];
+  bq('brandHint').textContent='Eerste post om '+pad2(b.startHour)+':00, daarna elke '+
+    b.stepHours+' uur. Tijdzone '+(bq('csvTz').value||'Europe/Amsterdam')+
+    '. Loopt het schema over middernacht, dan schuift het door naar de volgende dag.';
+}
+function setBrand(v){
+  if(typeof styleLoaded!=='undefined'&&styleLoaded)captureStyle();
+  BRAND=BRANDS[v]?v:'dutch';
+  loadBrandStyle();
+  Array.prototype.forEach.call(bq('brand').children,b=>
+    b.setAttribute('aria-pressed',String(b.dataset.v===BRAND)));
+
+  Array.prototype.forEach.call(bq('logo').children,b=>
+    b.setAttribute('aria-pressed',String(b.dataset.v===S.logo)));
+  BULK.forEach(it=>{if(it.brand!==BRAND){it.brand=BRAND;invalidate(it);}});
+  brandHint();render();applySchedule(false);drawBulkList();savePreferences();
+}
+
+function slotFor(index,brand,startDate){
+  const b=BRANDS[brand]||BRANDS.dutch;
+  const total=b.startHour+index*b.stepHours;
+  const d=new Date(startDate+'T00:00:00');
+  d.setDate(d.getDate()+Math.floor(total/24));
+  return {date:isoDay(d),time:pad2(total%24)+':00'};
+}
+function applySchedule(force){
+  const raw=(bq('bulkDate').value||'').trim();
+  const start=/^\d{4}-\d{2}-\d{2}$/.test(raw)?raw:isoDay(new Date(Date.now()+864e5));
+  BULK.forEach((it,i)=>{
+    if(!force&&it.manualTime&&it.scheduledDate&&it.scheduledTime)return;
+    const s=slotFor(i,it.brand||BRAND,start);
+    it.scheduledDate=s.date;it.scheduledTime=s.time;
+    if(force)it.manualTime=false;
+  });
+}
+
+/* ---------- 6. Controle en export ---------- */
+
+function isSelectionActive(){return BULK.some(x=>x.slot);}
+function inExport(x){if(!isSelectionActive())return true;return x.slot==='main'||(x.slot==='reserve'&&!!bq('csvReserves')?.checked);}
+function exportScope(){return BULK.filter(inExport);}
+function stats(){
+  const scope=exportScope(),tot=scope.length;
+  return {
+    total:tot,all:BULK.length,selection:isSelectionActive(),
+    captions:scope.filter(x=>x.facebookCaption).length,
+    ready:scope.filter(x=>x.finalCloudinaryUrl&&!x.dirtyImage).length,
+    rendered:scope.filter(x=>x.loadedImageBlob&&!x.finalCloudinaryUrl).length,
+    previews:scope.filter(x=>x.loadedImageBlob&&!x.dirtyImage).length,
+    failed:scope.filter(x=>['http','cors','format','decode','render','upload','nourl','nohost'].indexOf(x.imageStatus)>-1).length,
+    rows:scope.filter(x=>x.finalCloudinaryUrl&&!x.dirtyImage&&x.facebookCaption.trim()).length
+  };
+}
+function showCheck(){
+  const s=stats();
+  bq('bulkSummary').textContent=
+    (s.selection?s.total+' geselecteerde posts voor export (van '+s.all+' ingelezen)\n':s.total+' items in totaal\n')+
+    s.captions+' captions aanwezig\n'+
+    s.ready+' beelden klaar met Cloudinary-link\n'+
+    s.rendered+' beelden gemaakt maar niet geüpload\n'+
+    s.failed+' beelden mislukt\n'+
+    s.rows+' CSV-regels worden geëxporteerd';
+  const t=document.createElement('table');t.className='ptable';
+  t.innerHTML='<tr><th>#</th><th>Selectie</th><th>Datum</th><th>Tijd</th><th>Beeld</th><th>Media</th><th>Caption</th></tr>';
+  BULK.forEach((it,i)=>{
+    const st=ST[it.imageStatus]||ST.wait;
+    const tr=document.createElement('tr');
+    const cells=[
+      String(i+1),
+      it.slot?({main:'hoofdpost',reserve:'reserve',out:'niet gekozen'}[it.slot]):(BRANDS[it.brand]||BRANDS.dutch).name,
+      it.scheduledDate||'—',
+      it.scheduledTime||'—',
+      st.t,
+      it.finalCloudinaryUrl?'Cloudinary':'leeg',
+      it.facebookCaption?it.facebookCaption.length+' tekens':'ontbreekt'
+    ];
+    cells.forEach((c,k)=>{
+      const td=document.createElement('td');td.textContent=c;
+      if((k===4&&st.c==='err')||(k===5&&!it.finalCloudinaryUrl)||(k===6&&!it.facebookCaption))td.className='bad';
+      tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  const box=bq('bulkTable');box.innerHTML='';box.appendChild(t);
+  return s;
+}
+
+const csvEsc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+
+function buildCSV(){
+  const defaults=['Date','Time','Timezone','Network','Text','Media URL','Brand'];
+  const requested=(bq('csvHead').value||defaults.join(',')).split(',').map(s=>s.trim());
+  const head=requested.length===7&&new Set(requested).size===7&&requested.every(x=>defaults.includes(x))?requested:defaults;
+  const net=(bq('csvNet').value||'facebook').trim(),tz=(bq('csvTz').value||'Europe/Amsterdam').trim();
+  const lines=[head.map(csvEsc).join(',')];
+  for(const it of exportScope().filter(x=>x.finalCloudinaryUrl&&!x.dirtyImage&&x.facebookCaption.trim())){const row={Date:it.scheduledDate,Time:it.scheduledTime,Timezone:tz,Network:net,Text:it.facebookCaption,'Media URL':it.dirtyImage?'':(it.finalCloudinaryUrl||''),Brand:(BRANDS[it.brand]||BRANDS.dutch).name};lines.push(head.map(k=>csvEsc(row[k])).join(','));}
+  return lines.join('\r\n')+'\r\n';
+}
+function saveBlob(blob,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+/* ---------- 7. Knoppen ---------- */
+
+function persistBulkDraft(){
+  try{localStorage.setItem('pm_bulk_draft',JSON.stringify({text:bq('bulkIn').value,date:bq('bulkDate').value,brand:BRAND}));return true;}catch(e){return false;}
+}
+async function runItems(items){
+  for(let i=0;i<items.length;i++){
+    bulkSet('Bezig met '+(i+1)+' van '+items.length+'…');
+    const x=items[i];if(x&&x.__noUpload)await processItem(x.it,false);else await processItem(x);
+  }
+}
+
+Array.prototype.forEach.call(bq('brand').children,b=>
+  b.addEventListener('click',()=>setBrand(b.dataset.v)));
+
+bq('bulkParse').addEventListener('click',()=>{
+  const t=bq('bulkIn').value;
+  if(!t.trim()){bulkSet('Plak eerst je tekst hierboven.',true);return;}
+  BULK.forEach(it=>{if(it.thumb)URL.revokeObjectURL(it.thumb);});
+  BULK=parseBulk(t);
+  if(!BULK.length){
+    bulkSet('Geen items herkend. De app zoekt naar de regel FACEBOOK CAPTION — staat die er niet in, voeg hem toe.',true);
+    drawBulkList();return;
+  }
+  applySchedule(true);drawBulkList();
+  const zonder=BULK.filter(x=>!x.sourceImageUrl).length;
+  bulkSet(BULK.length+' items gelezen, schema toegepast'+
+    (zonder?(' — '+zonder+' zonder beeld-URL, die kun je hieronder invullen'):'')+'.',!!zonder);
+});
+
+bq('bulkApply').addEventListener('click',()=>{applySchedule(false);drawBulkList();bulkSet('Schema toegepast. Handmatig gewijzigde tijden zijn blijven staan.');});
+bq('bulkRecalc').addEventListener('click',()=>{applySchedule(true);drawBulkList();bulkSet('Schema volledig herberekend.');});
+bq('bulkDate').addEventListener('change',()=>{applySchedule(false);drawBulkList();savePreferences();});
+bq('csvTz').addEventListener('input',brandHint);
+
+bq('bulkRetryFailed').addEventListener('click',async()=>{
+  const bad=exportScope().filter(x=>x.dirtyImage||!['ready','loaded','nohost'].includes(x.imageStatus)||!x.loadedImageBlob);
+  if(!bad.length){bulkSet('Er zijn geen mislukte items om opnieuw te proberen.');return;}
+  const btn=bq('bulkRetryFailed');btn.disabled=true;
+  const cloudOk=!!(bq('cldCloud').value.trim()&&bq('cldPreset').value.trim());await runItems(bad.map(x=>({__noUpload:!cloudOk,it:x})));btn.disabled=false;const s=showCheck();
+  bulkSet(s.previews+'/'+s.total+' previews klaar, '+s.ready+' geüpload.',s.previews!==s.total);
+});
+
+bq('bulkSaveDraft').addEventListener('click',()=>{
+  const ok=persistBulkDraft();
+  if(ok&&bq('bulkIn').value.trim())bq('bulkRestoreDraft').hidden=false;
+  bulkSet(ok?'Concept lokaal bewaard.':'Concept kon niet lokaal worden bewaard.',!ok);
+});
+
+bq('bulkRestoreDraft').addEventListener('click',()=>{
+  let d=null;try{d=JSON.parse(localStorage.getItem('pm_bulk_draft')||'null');}catch(e){}
+  if(!d||!d.text||!d.text.trim()){bulkSet('Er is geen bewaard concept.',true);return;}
+  if(bq('bulkIn').value.trim()&&!confirm('Het invoerveld is niet leeg. Vervangen door het bewaarde concept?'))return;
+  bq('bulkIn').value=d.text;
+  bulkSet('Bewaard concept teruggezet. Druk op "1 — Lees de tekst".');
+});
+
+bq('bulkOneClick').addEventListener('click',async()=>{
+  const btn=bq('bulkOneClick');btn.disabled=true;
+  try{
+    if(!BULK.length){
+      const t=bq('bulkIn').value;if(!t.trim()){bulkSet('Plak eerst je ochtendoutput.',true);return;}
+      BULK=parseBulk(t);applySchedule(true);drawBulkList();
+    }
+    persistBulkDraft();
+    await runItems(exportScope().filter(x=>x.dirtyImage||x.imageStatus!=='ready'));
+    const st=showCheck();updateQualityGate();
+    const blob=new Blob(['\uFEFF'+buildCSV()],{type:'text/csv;charset=utf-8;'});
+    saveBlob(blob,'metricool-'+BRAND+'-'+(BULK[0]?.scheduledDate||isoDay(new Date()))+'.csv');rememberExportedTopics();
+    bulkSet(st.ready===st.total
+      ? 'Klaar — '+st.total+'/'+st.total+' compleet. CSV gemaakt en onderwerpen aan je lokale historie toegevoegd.'
+      : 'CSV gemaakt met '+st.rows+' complete posts. '+(st.total-st.rows)+' onvolledige posts blijven in de app.',st.ready!==st.total);
+  }finally{btn.disabled=false;}
+});
+
+bq('bulkImgs').addEventListener('click',()=>{
+  const rows=exportScope().filter(x=>x.loadedImageBlob&&x.file&&!x.dirtyImage);
+  if(!rows.length){bulkSet('Nog geen beelden gemaakt — render eerst de previews.',true);return;}
+  rows.forEach((it,i)=>setTimeout(()=>saveBlob(it.loadedImageBlob,it.file),i*600));
+  bulkSet(rows.length+' beelden worden één voor één opgeslagen.');
+});
+
+bq('bulkZip').addEventListener('click',()=>{
+  const rows=exportScope().filter(x=>x.loadedImageBlob&&x.file&&!x.dirtyImage);
+  if(!rows.length){bulkSet('Nog geen actuele beelden — render eerst de previews.',true);return;}
+  const used=new Set();
+  const files=rows.map((it)=>{const n=BULK.indexOf(it)+1;const slug=normTopic(it.imageHook).split(' ').slice(0,6).join('-')||'post';let name=String(n).padStart(2,'0')+'-'+(it.slot==='reserve'?'reserve-':'')+slug+'.'+(it.file.split('.').pop());while(used.has(name))name='x'+name;used.add(name);return {name,blob:it.loadedImageBlob};});
+  makeZip(files).then(z=>{saveBlob(z,'beelden-'+BRAND+'-'+(BULK[0]?.scheduledDate||isoDay(new Date()))+'.zip');bulkSet(rows.length+' beelden in één ZIP-bestand gedownload.');}).catch(e=>bulkSet('ZIP maken mislukt: '+e.message,true));
+});
+bq('bulkSources').addEventListener('click',()=>{
+  if(!BULK.length){bulkSet('Nog niets ingelezen.',true);return;}
+  const head=['Nr','Selectie','Hook','Beeldtype','Directe beeldlink','Bronpagina beeld','Beeldcredit','Verificatie','Verificatiebronnen'];
+  const rows=BULK.map((it,i)=>[i+1,it.slot||'',it.imageHook,it.isAi?'Reconstructie':(it.localMain?'Eigen bestand':'Archief/URL'),it.resolvedUrl||it.sourceImageUrl||'',it.imageSourceUrl||'',it.imageCredit||'',it.verification||'',it.verificationSources||'']);
+  saveBlob(new Blob(['\uFEFF'+[head,...rows].map(r=>r.map(csvEsc).join(',')).join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8;'}),'bronnen-'+BRAND+'-'+(BULK[0]?.scheduledDate||isoDay(new Date()))+'.csv');
+  bulkSet('Bronnenlijst gedownload: beeldlinks, credits en verificatiebronnen per post.');
+});
+
+bq('bulkCheck').addEventListener('click',()=>{
+  if(!BULK.length){bulkSet('Nog niets ingelezen.',true);return;}
+  const s=showCheck();
+  bulkSet(s.ready===s.total?'Alles compleet. Klaar om te exporteren.'
+    :s.rows+' van '+s.total+' posts zijn compleet (beeld geüpload én caption). '+(s.previews>s.ready?'Upload de previews naar Cloudinary voor de CSV.':'Render eerst de ontbrekende previews.'),s.ready!==s.total);
+});
+
+bq('bulkCsv').addEventListener('click',()=>{
+  if(!BULK.length){bulkSet('Nog niets om te exporteren.',true);return;}
+  const s=showCheck();updateQualityGate();
+  const blob=new Blob(['\uFEFF'+buildCSV()],{type:'text/csv;charset=utf-8;'});
+  saveBlob(blob,'metricool-'+BRAND+'-'+(BULK[0].scheduledDate||isoDay(new Date()))+'.csv');rememberExportedTopics();
+  /* Aandachtspunten houden de export niet meer tegen — ze worden alleen gemeld. */
+  bulkSet(s.rows+' regels geëxporteerd.'+((s.total-s.ready)?' '+(s.total-s.rows)+' onvolledige posts zijn overgeslagen.':'')+' Onderwerpen zijn toegevoegd aan je lokale historie.',s.ready!==s.total);
+});
+
+
+/* ---------- v4: cockpitbediening ---------- */
+const filters=bq('bulkFilters');
+if(filters)filters.addEventListener('click',e=>{const btn=e.target.closest('[data-filter]');if(!btn)return;BULK_FILTER=btn.dataset.filter;filters.querySelectorAll('[data-filter]').forEach(x=>x.setAttribute('aria-pressed',x===btn?'true':'false'));drawBulkList();});
+const proxyClick=(from,to)=>{const a=bq(from),b=bq(to);if(a&&b)a.addEventListener('click',()=>b.click());};
+proxyClick('mobileBuild','previewAll');proxyClick('mobileRetry','bulkRetryFailed');proxyClick('mobileExport','bulkCsv');
+
+/* v4.3: brand profiles, independent previews, safe optional AI backend */
+const STYLE_KEYS=['template','insetPos','insetSize','zoom','accent','fontSize','watermark','ratio','barMode','logo','logoSize','logoPos','fit','focus','insetShape','hookFont','textColor','barColor','safeMargin','aiLabel','logoOwnData'];
+const fontFiles={},customFonts={},ownLogos={};
+let styleLoaded=false;
+let BRAND_STYLES={dutch:{...pickStyle(S),hookFont:'editorial',textColor:'#FFF9ED',barColor:'#123A38',accent:'#E3BB72',safeMargin:5,aiLabel:'AI reconstruction',logo:'dutch'},teacher:{...pickStyle(S),hookFont:'modern',textColor:'#FFFFFF',barColor:'#17263F',accent:'#F3C84B',safeMargin:5,aiLabel:'AI reconstruction',logo:'teacher',insetPos:'tr'}};
+try{const saved=JSON.parse(localStorage.getItem('hce_brand_styles')||'null');if(saved)for(const b of ['dutch','teacher'])if(saved[b])Object.assign(BRAND_STYLES[b],pickStyle(saved[b]));}catch(e){}
+Object.assign(BRAND_STYLES.dutch,{template:'tda-v5',ratio:'9:16',hookFont:'modern',logo:'dutch',logoPos:'seam',barColor:'#000000',textColor:'#FFFFFF',aiLabel:'Illustrated reconstruction'});
+BRAND_STYLES.teacher.template='classic';
+function pickStyle(obj){return Object.fromEntries(STYLE_KEYS.filter(k=>obj[k]!==undefined).map(k=>[k,obj[k]]));}
+function captureStyle(){BRAND_STYLES[BRAND]={...BRAND_STYLES[BRAND],...pickStyle(S),logoOwn:ownLogos[BRAND]||S.logoOwn};}
+function savePreferences(){try{localStorage.setItem('hce_preferences',JSON.stringify({brand:BRAND,date:bq('bulkDate').value}));localStorage.setItem('hce_brand_styles',JSON.stringify(Object.fromEntries(Object.entries(BRAND_STYLES).map(([b,v])=>[b,pickStyle(v)]))));}catch(e){bulkSet('Instellingen niet bewaard. Download een JSON-reservekopie.',true);}}
+function fontFor(style){return ({editorial:'Georgia, "DejaVu Serif", serif',modern:'Arial, "DejaVu Sans", sans-serif',classic:'"Times New Roman", serif',original:'Montserrat, "Arial Black", sans-serif',custom:customFonts[BRAND]||'Georgia, serif'})[style.hookFont]||'Georgia, serif';}
+function loadBrandStyle(){
+  styleLoaded=true;
+  Object.assign(S,BRAND_STYLES[BRAND]);S.template=BRAND==='dutch'?'tda-v5':'classic';if(BRAND==='dutch'){S.ratio='9:16';S.logo='dutch';}S.logoOwn=ownLogos[BRAND]||null;
+  bq('styleBrand').textContent='Beeldstijl: '+BRANDS[BRAND].name;
+  for(const id of ['hookFont','textColor','barColor','accentColor','safeMargin','aiLabel'])bq(id).value=S[id==='accentColor'?'accent':id];
+  for(const id of ['ratio','barMode','accent','logo','logoPos','fit','focus','insetShape','insetPos'])bq(id).querySelectorAll('[data-v]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.v===S[id])));
+  for(const [id,suffix] of [['insetSize','%'],['zoom','%'],['logoSize','%'],['fontSize',''],['safeMargin','%']]){bq(id).value=S[id];bq(id+'Val').textContent=S[id]+suffix;}
+  if(S.logoOwnData&&!ownLogos[BRAND]){const brand=BRAND,im=new Image();im.onload=()=>{ownLogos[brand]=im;BRAND_STYLES[brand].logoOwn=im;if(brand===BRAND){S.logoOwn=im;render();}};im.src=S.logoOwnData;}
+}
+function invalidate(it,increment=true){if(increment)it.revision=(it.revision||0)+1;it.dirtyImage=true;it.finalCloudinaryUrl='';if(it.imageStatus!=='loading')it.imageStatus=it.isAi&&!it.localMain&&!it.sourceImageUrl&&!it.imageSourceUrl?'prompt':'wait';}
+function styleChanged(){captureStyle();BULK.forEach(it=>{if(it.brand===BRAND)invalidate(it);});savePreferences();updateCockpit();}
+for(const id of ['hookFont','textColor','barColor','accentColor','safeMargin','aiLabel'])bq(id).addEventListener('input',()=>{S[id==='accentColor'?'accent':id]=id==='safeMargin'?+bq(id).value:bq(id).value;if(id==='safeMargin')bq('safeMarginVal').textContent=S.safeMargin+'%';styleChanged();render();});
+bq('customFont').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const name='HistoryFont_'+BRAND;const face=new FontFace(name,await file.arrayBuffer());await face.load();document.fonts.add(face);fontFiles[BRAND]=file;customFonts[BRAND]=name;S.hookFont='custom';bq('hookFont').value='custom';styleChanged();render();}catch(e){bulkSet('Font kon niet worden gelezen.',true);}};
+async function timedFetch(url,options={},timeout=15000){const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{...options,signal:c.signal});const bytes=await r.arrayBuffer();return new Response(bytes,{status:r.status,statusText:r.statusText,headers:r.headers});}finally{clearTimeout(t);}}
+let workQueue=Promise.resolve(),workCount=0;
+function processItem(it,upload=true){
+  workCount++;
+  const task=workQueue.then(()=>processItemInternal(it,upload)).catch(err=>{it.finalCloudinaryUrl='';it.imageStatus=ST[err.kind]?err.kind:'render';it.error=err.message||'Verwerken mislukt';try{drawBulkList();}catch(e){console.warn(e);}});
+  workQueue=task.catch(()=>{});return task.finally(()=>workCount--);
+}
+// Keep edits and shared editor changes away from an active render/upload.
+document.addEventListener('click',e=>{
+  if(!workCount)return;
+  const btn=e.target.closest('button,label,input,select,textarea');if(!btn)return;
+  if(['mobileExport','bulkCsv','closeSheet','bulkCheck','bulkSources'].includes(btn.id))return;
+  if(btn.closest('.filterbar')||btn.closest('.mini-details>summary'))return;
+  if(btn.closest('#pane-bulk')||btn.closest('#pane-stijl')||btn.closest('#pane-editor')){e.preventDefault();e.stopImmediatePropagation();bulkSet('Bezig met verwerken. CSV-export blijft beschikbaar.');}
+},true);
+async function renderPreviews(){if(!BULK.length&&bq('bulkIn').value.trim()){BULK=parseBulk(bq('bulkIn').value);applySchedule(true);}if(!BULK.length){bulkSet('Plak en lees eerst een batch.',true);return;}savePreferences();const scope=exportScope();for(let i=0;i<scope.length;i++){bulkSet('Preview '+(i+1)+' van '+scope.length+'…');await processItem(scope[i],false);}drawBulkList();bulkSet(scope.filter(x=>x.loadedImageBlob&&!x.dirtyImage).length+'/'+scope.length+' previews klaar'+(isSelectionActive()?' (geselecteerde posts)':'')+'. '+scope.filter(x=>x.imageStatus==='prompt'||x.imageStatus==='nourl').length+' posts wachten op een afbeeldingsbestand of beeldlink.');}
+for(const id of ['cldCloud','cldPreset','proxyUrl','publicProxy'])bq(id).addEventListener('change',()=>{try{localStorage.setItem('pm_cld',JSON.stringify({cloud:bq('cldCloud').value.trim(),preset:bq('cldPreset').value.trim(),proxy:bq('proxyUrl').value.trim(),publicProxy:bq('publicProxy').checked}));}catch(e){bulkSet('Cloudinary-instellingen niet bewaard.',true);}});
+bq('previewAll').onclick=renderPreviews;
+bq('uploadPreviews').onclick=async()=>{if(!bq('cldCloud').value.trim()||!bq('cldPreset').value.trim()){bulkSet('Vul eerst Cloudinary in onder Instellingen (cloud name en upload preset).',true);return;}let missing=0;for(const it of exportScope()){
+  if(it.dirtyImage||!it.loadedImageBlob){missing++;continue;}
+  try{workCount++;const revision=it.revision||0;const url=await uploadCloud(it.loadedImageBlob,it);if(revision!==(it.revision||0))continue;it.finalCloudinaryUrl=url;it.imageStatus=url?'ready':'nohost';}catch(e){it.finalCloudinaryUrl='';it.imageStatus='upload';it.error=e.message;}finally{workCount--;drawBulkList();}
+}const s=showCheck();bulkSet('Uploadronde afgerond: '+s.ready+'/'+s.total+' geüpload.'+(missing?' '+missing+' posts hebben nog geen actuele preview.':''),!!missing||s.ready!==s.total);};
+function imagePrompt(it){const style=BRAND_STYLES[it.brand];if(it.aiPrompt?.trim())return it.aiPrompt;return `Create a historically plausible visual reconstruction, not an archival photograph. Subject: ${it.imageHook.replace(/[\[\]]/g,'')}. Historical context: ${it.facebookCaption.replace(/#[\p{L}\p{N}_]+/gu,'').slice(0,1800)}. Before generation, check the period, place, clothing, materials and architecture against reliable historical references; if details are uncertain, use a restrained generic depiction and state uncertainties separately. Do not invent readable inscriptions, specific artifacts, recognizable historical faces or unsupported events. ${it.brand==='dutch'?'Dutch archaeology: documentary texture, muted earth tones, natural light.':'World history education: clear composition, realistic textures, balanced light.'} Source image aspect ratio ${it.brand==='dutch'?'15:16':style.ratio}. Fill the complete frame with the scene; the app places text separately. No text, logos or watermark in the source image. The app adds the reconstruction label.`;}
+async function generateItemImage(it,prompt,notify){
+  if(it.generating)return;
+  const report=(message,error=false)=>{it.generationMessage=message;it.generationError=error;notify(message,error);};
+  try{backendBase();}catch(e){report(e.message,true);return;}
+  if(!prompt.trim()){report('Vul eerst een beeldprompt in.',true);return;}
+  it.generating=true;workCount++;
+  report('Beeld wordt gegenereerd… Dit kan maximaal twee minuten duren.');
+  try{
+    const res=await backendRequest('/api/image',{prompt,ratio:it.brand==='dutch'?'15:16':BRAND_STYLES[it.brand].ratio});
+    if(!res.ok)throw Error(await backendError(res));
+    const blob=await res.blob();
+    if(!blob.type.startsWith('image/'))throw Error('De backend gaf geen afbeeldingsbestand terug. /api/image moet een PNG, JPEG of WebP teruggeven.');
+    const decoded=await blobToImage(blob);decoded.revoke();
+    it.localMain=new File([blob],'ai-reconstruction.'+(blob.type==='image/jpeg'?'jpg':blob.type==='image/webp'?'webp':'png'),{type:blob.type});
+    it.isAi=true;invalidate(it);report('Afbeelding ontvangen. De kaart wordt opgebouwd…');
+    await processItem(it,false);
+    if(!it.loadedImageBlob||it.dirtyImage)throw Error(it.error||'Afbeelding ontvangen, maar de kaart kon niet worden gemaakt. Controleer de kop en IMAGE STORY.');
+    report('Afbeelding en preview klaar. Je kunt de JPEG bewaren of uploaden.');
+  }catch(e){report(e.name==='AbortError'?'De generatie duurde langer dan twee minuten. Controleer de backend voordat je opnieuw probeert.':e instanceof TypeError?'Verbinding met de backend mislukt. Controleer het adres, de bereikbaarheid en toestemming voor deze app (CORS).':e.message,true);}
+  finally{it.generating=false;workCount--;drawBulkList();}
+}
+function addImageControls(box,it){
+  const hint=document.createElement('p');hint.className='hint';hint.textContent='Gebruik DIRECT DOWNLOAD voor het afbeeldingsbestand en IMAGE SOURCE voor de bijbehorende bronpagina. Een eigen hoofdfoto werkt ook zonder downloadverbinding.';box.append(hint);
+  const typeLabel=document.createElement('label');typeLabel.textContent='Soort afbeelding';const type=document.createElement('select');
+  for(const [value,text] of [['archive','Echte foto, schilderij, prent of archiefbeeld'],['reconstruction','Gegenereerde reconstructie — zichtbaar label']]){const opt=document.createElement('option');opt.value=value;opt.textContent=text;type.append(opt);}
+  type.value=it.isAi?'reconstruction':'archive';type.onchange=()=>{it.isAi=type.value==='reconstruction';it.imageMode=it.isAi?'ILLUSTRATED RECONSTRUCTION':'ARCHIVE IMAGE';it.imageLabel=it.isAi?'Illustrated reconstruction':'';invalidate(it);drawBulkList();};box.append(typeLabel,type);
+  if(it.isAi){const note=document.createElement('p');note.className='bstat warn';note.textContent='Dit ingelezen verhaal is als reconstructie gemarkeerd. Voeg een echt beeld toe en wijzig het type wanneer dat beeld een foto of archiefbeeld is.';box.append(note);}
+  const row=document.createElement('div');row.className='row';
+  const preview=document.createElement('button');preview.className='btn btn-main mini';preview.type='button';preview.textContent='Kaart maken met deze afbeelding';preview.onclick=async()=>{preview.disabled=true;await processItem(it,false);};row.append(preview);
+  const down=document.createElement('button');down.className='btn btn-ghost mini';down.type='button';down.textContent='Bewaar beeld';down.onclick=()=>{if(it.loadedImageBlob&&!it.dirtyImage)saveBlob(it.loadedImageBlob,it.file);else bulkSet('Maak eerst een actuele preview.',true);};row.append(down);
+  if(it.imageSourceUrl){try{const url=new URL(it.imageSourceUrl);if(['https:','http:'].includes(url.protocol)){const link=document.createElement('a');link.className='btn btn-ghost mini';link.textContent='Open beeldbron';link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';row.append(link);}}catch{}}
+  box.append(row);
+  if(it.imageCredit){const cr=document.createElement('p');cr.className='credit';cr.textContent='Beeld: '+it.imageCredit;box.append(cr);}
+  addCommonsSearch(box,it);
+  if(it.isAi||it.imageStatus==='prompt'||it.aiPrompt){
+    const ai=document.createElement('div');ai.className='row';
+    const cp=document.createElement('button');cp.className='btn btn-ghost mini';cp.type='button';cp.textContent='Kopieer beeldprompt';
+    cp.onclick=async()=>{try{await navigator.clipboard.writeText(imagePrompt(it));bulkSet('Beeldprompt gekopieerd. Genereer het beeld in je eigen tool en kies het daarna als eigen hoofdfoto.');}catch{bulkSet('Kopiëren lukte niet op dit apparaat.',true);}};
+    ai.append(cp);
+    let hasBackend=false;try{backendBase();hasBackend=true;}catch{}
+    if(hasBackend){const gen=document.createElement('button');gen.className='btn btn-ghost mini';gen.type='button';gen.textContent=it.generating?'Bezig met genereren…':'Genereer via eigen server';gen.disabled=!!it.generating;gen.onclick=()=>generateItemImage(it,imagePrompt(it),(m,e)=>bulkSet(m,e));ai.append(gen);}
+    box.append(ai);
+    if(it.generationMessage){const gm=document.createElement('p');gm.className='bstat '+(it.generationError?'err':'ok');gm.textContent=it.generationMessage;box.append(gm);}
+  }
+  if(it.renderWarning){const note=document.createElement('p');note.className='bstat warn';note.textContent=it.renderWarning;box.append(note);}
+}
+function backendBase(){const raw=bq('aiBackend').value.trim();if(!raw)throw Error('Er is geen generatieserver ingesteld. Deze HTML-app genereert zelf geen beelden en is niet automatisch verbonden met ChatGPT of Higgsfield. Stel je eigen backend in via ‘Generatieserver instellen’, of kopieer de prompt en voeg het gegenereerde bestand toe.');let u;try{u=new URL(raw);}catch{throw Error('Ongeldig backendadres. Gebruik een volledig adres, bijvoorbeeld https://jouw-server.nl.');}if(u.protocol!=='https:'&&!(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)))throw Error('Gebruik HTTPS voor de AI-backend.');return u.href.replace(/\/+$/,'');}
+async function backendRequest(path,body){return timedFetch(backendBase()+path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)},120000);}
+async function backendError(res){try{return (await res.json()).error||'Backend HTTP '+res.status;}catch{return 'Backend HTTP '+res.status;}}
+try{bq('aiBackend').value=localStorage.getItem('hce_backend_url')||'';}catch{}
+bq('aiBackend').addEventListener('change',()=>{try{localStorage.setItem('hce_backend_url',bq('aiBackend').value.trim());}catch{}drawBulkList();});
+bq('loginBackend').onclick=async()=>{try{const r=await backendRequest('/api/login',{token:bq('backendLogin').value});if(!r.ok)throw Error(await backendError(r));bq('backendLogin').value='';bq('backendStatus').textContent='Backend verbonden.';bq('backendStatus').classList.remove('err');}catch(e){bq('backendStatus').textContent=e.message;bq('backendStatus').classList.add('err');}};
+function asData(blob){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(blob);});}
+function dataBlob(data){if(!/^data:[^;]+;base64,/.test(data))throw Error('Ongeldig beeld in backup');const [head,bytes]=data.split(',');const arr=Uint8Array.from(atob(bytes),c=>c.charCodeAt(0));return new Blob([arr],{type:head.slice(5,head.indexOf(';'))});}
+bq('backupProject').onclick=async()=>{try{captureStyle();const rows=[];for(const it of BULK){const row={...it};delete row.insetImg;delete row.thumb;delete row.loadedImageBlob;for(const slot of ['localMain','localInset'])row[slot]=it[slot]?{name:it[slot].name,data:await asData(it[slot])}:null;rows.push(row);}const fonts={};for(const [b,f] of Object.entries(fontFiles))fonts[b]={name:f.name,data:await asData(f)};saveBlob(new Blob([JSON.stringify({version:1,brand:BRAND,date:bq('bulkDate').value,styles:Object.fromEntries(Object.entries(BRAND_STYLES).map(([b,v])=>[b,pickStyle(v)])),rows,fonts,history:loadTopicHistory()},null,2)],{type:'application/json'}),'history-content-backup.json');bulkSet('Reservekopie gedownload, inclusief lokale beelden.');}catch(e){bulkSet('Backup mislukt: '+e.message,true);}};
+bq('restoreProject').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;if(file.size>100*1024*1024)throw Error('Backup groter dan 100 MB');const data=JSON.parse(await file.text());if(data.version!==1||!Array.isArray(data.rows)||!Array.isArray(data.history))throw Error('Ongeldig backupformaat');
+  const rows=data.rows.map(row=>{if(!BRANDS[row.brand]||typeof row.imageHook!=='string'||typeof row.facebookCaption!=='string')throw Error('Ongeldige post');const it={...row,thumb:'',loadedImageBlob:null,insetImg:null,dirtyImage:true,finalCloudinaryUrl:'',imageStatus:'wait'};for(const slot of ['localMain','localInset'])it[slot]=row[slot]?new File([dataBlob(row[slot].data)],row[slot].name,{type:dataBlob(row[slot].data).type}):null;return it;});
+  for(const b of ['dutch','teacher'])if(data.styles?.[b])Object.assign(BRAND_STYLES[b],pickStyle(data.styles[b]));
+  for(const [b,f] of Object.entries(data.fonts||{})){if(!BRANDS[b])continue;const file=new File([dataBlob(f.data)],f.name);const name='HistoryFont_'+b,face=new FontFace(name,await file.arrayBuffer());await face.load();document.fonts.add(face);fontFiles[b]=file;customFonts[b]=name;}
+  for(const it of BULK)if(it.thumb)URL.revokeObjectURL(it.thumb);BULK=rows;UID=Math.max(UID,...rows.map(x=>Number(x.id)||0));localStorage.setItem('pm_topic_history',JSON.stringify(data.history.filter(x=>BRANDS[x.brand]&&typeof x.hook==='string')));styleLoaded=false;BRAND=BRANDS[data.brand]?data.brand:'dutch';bq('bulkDate').value=data.date||isoDay(new Date());setBrand(BRAND);bulkSet('Reservekopie teruggezet. Render previews om de beelden opnieuw te maken.');
+}catch(e){bulkSet('Terugzetten mislukt: '+e.message,true);}finally{e.target.value='';}};
+
+
+/* ---------- v5.3: exportformaat, ZIP, Wikimedia Commons ---------- */
+let EXPORT_FORMAT='png';
+try{const f=localStorage.getItem('hce_export_format');if(f==='jpeg'||f==='png')EXPORT_FORMAT=f;}catch(e){}
+function exportFormat(){return EXPORT_FORMAT==='jpeg'?{mime:'image/jpeg',ext:'jpg',quality:.92,label:'JPEG'}:{mime:'image/png',ext:'png',quality:undefined,label:'PNG'};}
+(function(){const box=bq('exportFormat');if(!box)return;const paint=()=>box.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===EXPORT_FORMAT)));paint();
+  box.addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;EXPORT_FORMAT=b.dataset.v;paint();try{localStorage.setItem('hce_export_format',EXPORT_FORMAT);}catch(err){}BULK.forEach(it=>{if(it.loadedImageBlob)invalidate(it);});drawBulkList();bulkSet('Exportformaat: '+exportFormat().label+'. Render de previews opnieuw.');});})();
+(function(){const c=bq('csvReserves');if(!c)return;try{c.checked=localStorage.getItem('hce_csv_reserves')==='1';}catch(e){}c.addEventListener('change',()=>{try{localStorage.setItem('hce_csv_reserves',c.checked?'1':'0');}catch(e){}updateCockpit();});})();
+
+/* ZIP zonder compressie (beelden zijn al gecomprimeerd). Geen externe bibliotheek. */
+const CRC_TABLE=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+async function makeZip(files){
+  const enc=new TextEncoder(),parts=[],central=[];let offset=0;
+  const d=new Date(),dosTime=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1),dosDate=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  for(const f of files){
+    const data=new Uint8Array(await f.blob.arrayBuffer()),name=enc.encode(f.name),crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);lh.setUint16(10,dosTime,true);lh.setUint16(12,dosDate,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,name.length,true);lh.setUint16(28,0,true);
+    parts.push(lh.buffer,name,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,0,true);ch.setUint16(12,dosTime,true);ch.setUint16(14,dosDate,true);
+    ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,name.length,true);ch.setUint32(42,offset,true);
+    central.push(ch.buffer,name);offset+=30+name.length+data.length;
+  }
+  const cdSize=central.reduce((a,b)=>a+(b.byteLength!==undefined?b.byteLength:b.length),0);
+  const end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,cdSize,true);end.setUint32(16,offset,true);
+  return new Blob([...parts,...central,end.buffer],{type:'application/zip'});
+}
+
+/* Wikimedia Commons: echte, vrij gelicentieerde afbeeldingen zoeken via de
+   openbare API (origin=* werkt ook vanaf een lokaal bestand). Er wordt niets
+   verzonnen: alleen URL's die de API teruggeeft worden gebruikt. */
+const STOP_WORDS=new Set('the a an and or of in on at to for from by with was were is are be been his her their its this that these those who which what when where how why into after before during over under about than then also only more most very just not but had has have did does do as it he she they them we you our your de het een en van in op aan te voor met door bij is was zijn waren werd worden dat die dit deze wie wat waar hoe toen ook niet maar had heeft hebben er hij zij ze ons onze jullie'.split(' '));
+function searchTermsFor(it){
+  const txt=String(it.imageHook||it.title||'').replace(/[\[\]]/g,' ');
+  const caps=(txt.match(/\b[A-ZÀ-Ý][\p{L}'’-]+(?:\s+(?:van|de|der|den|of|the|von|da)?\s*[A-ZÀ-Ý][\p{L}'’-]+)*/gu)||[]).filter(w=>!STOP_WORDS.has(w.toLowerCase()));
+  const years=txt.match(/\b1\d{3}\b/g)||[];
+  let terms=[...new Set([...caps,...years])].join(' ');
+  if(terms.split(' ').length<2)terms=normWords(txt).filter(w=>!STOP_WORDS.has(w)).slice(0,6).join(' ');
+  return terms.slice(0,120);
+}
+const stripHtml=h=>{const d=document.createElement('div');d.innerHTML=String(h||'');return (d.textContent||'').replace(/\s+/g,' ').trim();};
+async function searchCommons(q){
+  const api='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=12&gsrsearch='+encodeURIComponent(q+' filetype:bitmap')+'&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=1920&iiextmetadatafilter=Artist|LicenseShortName|ImageDescription|DateTimeOriginal|Credit';
+  const r=await timedFetch(api,{mode:'cors',credentials:'omit'},20000);
+  if(!r.ok)throw new Error('Commons gaf HTTP '+r.status);
+  const d=await r.json();
+  const pages=Object.values(d.query?.pages||{}).sort((a,b)=>(a.index||0)-(b.index||0));
+  return pages.map(p=>{const ii=p.imageinfo?.[0];if(!ii)return null;const m=ii.extmetadata||{};
+    return {title:String(p.title||'').replace(/^File:/,''),thumb:ii.thumburl||ii.url,full:ii.thumburl||ii.url,page:ii.descriptionurl,width:ii.width,height:ii.height,mime:ii.mime,
+      artist:stripHtml(m.Artist?.value).slice(0,120),license:stripHtml(m.LicenseShortName?.value),date:stripHtml(m.DateTimeOriginal?.value).slice(0,40),desc:stripHtml(m.ImageDescription?.value).slice(0,160)};
+  }).filter(x=>x&&/^image\/(jpeg|png|webp|gif|tiff)/.test(x.mime||'image/jpeg'));
+}
+function addCommonsSearch(box,it){
+  const wrap=document.createElement('div');wrap.className='commons';
+  const lab=document.createElement('strong');lab.textContent='Echte afbeelding zoeken';lab.style.fontSize='13px';
+  const row=document.createElement('div');row.className='urlrow';
+  const q=document.createElement('input');q.type='text';q.value=it.commonsQuery||searchTermsFor(it);q.placeholder='Zoektermen, bijv. naam + jaartal';q.setAttribute('aria-label','Zoektermen Wikimedia Commons');
+  q.addEventListener('input',()=>{it.commonsQuery=q.value;});
+  const go=document.createElement('button');go.type='button';go.textContent='Zoek op Commons';
+  const out=document.createElement('div');out.className='commons-grid';
+  const msg=document.createElement('p');msg.className='hint';
+  const links=document.createElement('div');links.className='searchlinks';
+  const paintLinks=()=>{links.innerHTML='';const t=encodeURIComponent(q.value.trim());if(!t)return;
+    for(const [name,url] of [['Rijksmuseum','https://www.rijksmuseum.nl/nl/zoeken?q='+t],['Nationaal Archief','https://www.nationaalarchief.nl/onderzoeken/zoeken?searchTerm='+t],['Beeldbank Cultureel Erfgoed','https://beeldbank.cultureelerfgoed.nl/?mode=gallery&view=horizontal&q='+t],['Delpher','https://www.delpher.nl/nl/platform/results?query='+t],['Google Afbeeldingen','https://www.google.com/search?tbm=isch&q='+t]]){
+      const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=name;links.append(a);}};
+  paintLinks();q.addEventListener('change',paintLinks);
+  const showResults=res=>{out.innerHTML='';
+    if(!res.length){msg.textContent='Geen bruikbare afbeeldingen gevonden. Probeer minder of andere zoektermen (bijv. alleen de naam).';return;}
+    msg.textContent=res.length+(res.length===1?' resultaat':' resultaten')+' van Wikimedia Commons. Controleer of het beeld echt bij dit onderwerp hoort.';
+    for(const r of res){const c=document.createElement('div');c.className='commons-card';
+      const im=document.createElement('img');im.loading='lazy';im.alt=r.title;im.src=r.thumb;im.referrerPolicy='no-referrer';
+      const t=document.createElement('span');t.textContent=r.title.slice(0,70)+(r.width?' · '+r.width+'×'+r.height:'');
+      const l=document.createElement('span');l.textContent=[r.artist,r.license,r.date].filter(Boolean).join(' · ')||'licentie: zie bronpagina';
+      const use=document.createElement('button');use.type='button';use.className='btn btn-main mini';use.textContent='Gebruik deze';
+      use.onclick=()=>{it.sourceImageUrl=r.full;it.imageSourceUrl=r.page;it.imageCredit=[r.artist||'Onbekende maker',r.license,'Wikimedia Commons'].filter(Boolean).join(' · ');it.localMain=null;it.resolvedUrl='';if(it.isAi){it.isAi=false;it.imageMode='ARCHIVE IMAGE';it.imageLabel='';}it.commonsResults=null;invalidate(it);drawBulkList();bulkSet('Afbeelding gekozen. Tik op "Kaart maken met deze afbeelding" of render alle previews.');};
+      c.append(im,t,l,use);out.append(c);}
+  };
+  go.onclick=async()=>{const term=q.value.trim();if(!term){msg.textContent='Vul eerst zoektermen in.';return;}go.disabled=true;msg.textContent='Zoeken op Wikimedia Commons…';
+    try{const res=await searchCommons(term);it.commonsResults=res;showResults(res);}catch(e){msg.textContent='Zoeken mislukt: '+(e.name==='AbortError'?'geen antwoord binnen 20 seconden':e.message)+'. Gebruik de zoeklinks hieronder.';}finally{go.disabled=false;}};
+  row.append(q,go);wrap.append(lab,row,msg,out,links);
+  if(it.commonsResults)showResults(it.commonsResults);
+  box.append(wrap);
+}
+
+/* ---------- 8. Opstarten ---------- */
+
+try{
+  const c=JSON.parse(localStorage.getItem('pm_cld')||'{}');
+  if(c.cloud)bq('cldCloud').value=c.cloud;
+  if(c.preset)bq('cldPreset').value=c.preset;
+  if(c.proxy)bq('proxyUrl').value=c.proxy;
+  bq('publicProxy').checked=!!c.publicProxy;
+}catch(e){}
+bq('bulkDate').value=isoDay(new Date(Date.now()+864e5));
+bq('csvTz').value='Europe/Amsterdam';
+bq('csvNet').value='facebook';
+bq('csvHead').value='Date,Time,Timezone,Network,Text,Media URL,Brand';
+try{
+  const d=JSON.parse(localStorage.getItem('pm_bulk_draft')||'null');
+  /* Het invoerveld start altijd leeg, zodat je meteen kunt plakken. Datum en
+     merk komen wel terug — die wil je zelden opnieuw instellen. Een bewaard
+     concept is met de knop "Concept terugzetten" op te halen. */
+  if(d){
+    if(d.date)bq('bulkDate').value=d.date;
+    if(d.brand&&BRANDS[d.brand])BRAND=d.brand;
+    if(d.text&&d.text.trim())bq('bulkRestoreDraft').hidden=false;
+  }
+}catch(e){}
+try{const pref=JSON.parse(localStorage.getItem('hce_preferences')||'null');if(pref){if(BRANDS[pref.brand])BRAND=pref.brand;if(pref.date)bq('bulkDate').value=pref.date;}}catch(e){}
+bq('imageStoryEditor').oninput=e=>{S.imageStory=e.target.value;render();};
+bq('bulkIn').value='';
+setBrand(BRAND);
+
+
+if(document.fonts&&document.fonts.load){
+  Promise.all([document.fonts.load('800 46px Montserrat'),document.fonts.load('500 20px "IBM Plex Mono"')])
+    .then(render).catch(render);
+}
+render();
+
+/*__PERF_JS__*/
+</script>
+</body>
+</html>
